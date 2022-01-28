@@ -17,10 +17,12 @@ module solver (
 
   signed reg [26:0] x_reg, y_reg, z_reg;
   signed wire [26:0] x_calc, y_calc, z_calc;
-  signed wire [26:0] dx, dy, dz;
+  signed wire [26:0] dx, dy, dz, y_inter;
+  signed wire [26:0] x_mult_y, beta_mult_z;
   assign x = x_reg; 
   assign y = y_reg;
   assign z = z_reg;
+  
 
   always @ (posedge clk) begin
     if (reset) begin
@@ -46,10 +48,36 @@ module solver (
 
 
   //TODO Y
+  signed_mult y_mult_1 (
+    .a(x),
+    .b(rho-z),
+    .out(y_inter)
+  );
+
+  assign dy = y_inter - y;
+  signed_mult y_mult_2 (
+    .a(dy-y),
+    .b(dt),
+    .out(y_calc)
+  );
 
   //TODO Z
-
   
+  signed_mult z_mult_1 (
+    .a(x),
+    .b(y),
+    .out(x_mult_y)
+  );
+  signed_mult z_mult_2 (
+    .a(beta),
+    .b(z),
+    .out(beta_mult_z)
+  );
+  signed_mult z_mult_3 (
+    .a(x_mult_y - beta_mult_z),
+    .b(dt),
+    .out(z_calc)
+  );
 endmodule
 
 
