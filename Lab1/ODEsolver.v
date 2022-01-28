@@ -1,4 +1,4 @@
-`default_nettype none
+
 
 module solver (
   input clk,
@@ -35,44 +35,48 @@ module solver (
     end
   end
 
+  // x_calc = sigma*(y-x)*dt
   signed_mult x_mult_1 (
-    .a(y-x),
+    .a((y>>>8)-(x>>>8)),
     .b(sigma),
-    .out(dx)
-  );
-  signed_mult x_mult_2 (
-    .a(dx),
-    .b(dt),
     .out(x_calc)
   );
+  // signed_mult x_mult_2 (
+  //   .a(dx),
+  //   .b(dt),
+  //   .out(x_calc)
+  // );
 
+  // y_calc = (x*(rho-z)-y)*dt
   signed_mult y_mult_1 (
-    .a(x),
+    .a(x>>>8),
     .b(rho-z),
     .out(y_inter)
   );
-  assign dy = y_inter - y;
-  signed_mult y_mult_2 (
-    .a(dy),
-    .b(dt),
-    .out(y_calc)
-  );
+  assign y_calc = y_inter - (y>>>8);
+  // signed_mult y_mult_2 (
+  //   .a(dy),
+  //   .b(dt),
+  //   .out(y_calc)
+  // );
 
+  // z_calc = (x*y-beta*z)*dt
   signed_mult z_mult_1 (
-    .a(x),
+    .a(x>>>8),
     .b(y),
     .out(x_mult_y)
   );
   signed_mult z_mult_2 (
     .a(beta),
-    .b(z),
+    .b(z>>>8),
     .out(beta_mult_z)
   );
-  signed_mult z_mult_3 (
-    .a(x_mult_y - beta_mult_z),
-    .b(dt),
-    .out(z_calc)
-  );
+  assign z_calc = (x_mult_y) - (beta_mult_z);
+  // signed_mult z_mult_3 (
+  //   .a(x_mult_y - beta_mult_z),
+  //   .b(dt),
+  //   .out(z_calc)
+  // );
 endmodule
 
 module signed_mult (out, a, b);
