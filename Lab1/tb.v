@@ -1,13 +1,13 @@
 `timescale 1ns/1ns
 
-module testbench();
+module ODEsolver_tb();
 	
 	reg clk, reset;
 	
 	// reg [31:0] index;
 	wire signed [26:0]  x_tb, y_tb, z_tb;
 
-  solver DUT (
+  ODEsolver DUT (
   .clk(clk),
   .reset(reset),
   .dt({7'h0, 20'h01000}),
@@ -26,10 +26,8 @@ module testbench();
 	initial begin
     // $dumpfile("dump.vcd");
     // $dumpvars(1);
-		clk = 1'b0;
+	clk = 1'b0;
     reset = 1'b0;
-		// index  = 32'd0;
-		//testbench_out = 15'd0 ;
 	end
 	
 	//Toggle the clocks
@@ -46,10 +44,5 @@ module testbench();
 		#30
 		reset  = 1'b0;
 	end
-	
-	// //Increment index
-	// always @ (posedge clk_50) begin
-	// 	index  <= index + 32'd1;
-	// end
 	
 endmodule

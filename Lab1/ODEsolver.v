@@ -1,6 +1,6 @@
 
 
-module solver (
+module ODEsolver (
   input clk,
   input reset,
   input signed [26:0] dt,
@@ -17,8 +17,8 @@ module solver (
 
   reg signed [26:0] x_reg, y_reg, z_reg;
   wire signed [26:0] x_calc, y_calc, z_calc;
-  wire signed [26:0] dx, dy, dz, y_inter;
-  wire signed [26:0] x_mult_y, beta_mult_z;
+  wire signed [26:0] x_inter, y_inter1, y_inter2, y_inter3;
+  wire signed [26:0] z_inter1, z_inter2, x_mult_y, beta_mult_z;
   assign x = x_reg; 
   assign y = y_reg;
   assign z = z_reg;
@@ -37,46 +37,56 @@ module solver (
 
   // x_calc = sigma*(y-x)*dt
   signed_mult x_mult_1 (
-    .a((y>>>8)-(x>>>8)),
+    .a(y-x),
+    .b(dt),
+    .out(x_inter)
+  );
+  signed_mult x_mult_2 (
+    .a(x_inter),
     .b(sigma),
     .out(x_calc)
   );
-  // signed_mult x_mult_2 (
-  //   .a(dx),
-  //   .b(dt),
-  //   .out(x_calc)
-  // );
 
   // y_calc = (x*(rho-z)-y)*dt
   signed_mult y_mult_1 (
-    .a(x>>>8),
-    .b(rho-z),
-    .out(y_inter)
+    .a(x),
+    .b(dt),
+    .out(y_inter1)
   );
-  assign y_calc = y_inter - (y>>>8);
-  // signed_mult y_mult_2 (
-  //   .a(dy),
-  //   .b(dt),
-  //   .out(y_calc)
-  // );
+  signed_mult y_mult_2 (
+    .a(y_inter1),
+    .b(rho-z),
+    .out(y_inter2)
+  );
+  signed_mult y_mult_3 (
+    .a(y),
+    .b(dt),
+    .out(y_inter3)
+  );
+  assign y_calc = y_inter2 - y_inter3;
 
   // z_calc = (x*y-beta*z)*dt
   signed_mult z_mult_1 (
-    .a(x>>>8),
+    .a(x),
+    .b(dt),
+    .out(z_inter1)
+  );
+  signed_mult z_mult_2 (
+    .a(z_inter1),
     .b(y),
     .out(x_mult_y)
   );
-  signed_mult z_mult_2 (
+  signed_mult z_mult_3 (
+    .a(z),
+    .b(dt),
+    .out(z_inter2)
+  );
+  signed_mult z_mult_4 (
     .a(beta),
-    .b(z>>>8),
+    .b(z_inter2),
     .out(beta_mult_z)
   );
-  assign z_calc = (x_mult_y) - (beta_mult_z);
-  // signed_mult z_mult_3 (
-  //   .a(x_mult_y - beta_mult_z),
-  //   .b(dt),
-  //   .out(z_calc)
-  // );
+  assign z_calc = x_mult_y - beta_mult_z;
 endmodule
 
 module signed_mult (out, a, b);
@@ -109,13 +119,3 @@ endmodule
 // 	assign v1new = v1 + funct;
 // 	assign out = v1 ;
 // endmodule
-
-
-// // clock divider to slow system down for testing
-// reg [4:0] count;
-// // analog update divided clock
-// always @ (posedge CLOCK_50) 
-// begin
-//         count <= count + 1; 
-// end	
-// assign AnalogClock = (count==0);		
