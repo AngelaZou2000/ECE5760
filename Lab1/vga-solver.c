@@ -16,6 +16,7 @@
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <math.h>
+#include <pthread.h>
 //#include "address_map_arm_brl4.h"
 
 // graphics primitives
@@ -74,6 +75,14 @@ volatile unsigned int *lw_pio_read_ptr = NULL;
 volatile signed int *lw_pio_read_x_ptr = NULL;
 volatile signed int *lw_pio_read_y_ptr = NULL;
 volatile signed int *lw_pio_read_z_ptr = NULL;
+volatile signed int *lw_pio_init_x_ptr = NULL;
+volatile signed int *lw_pio_init_y_ptr = NULL;
+volatile signed int *lw_pio_init_z_ptr = NULL;
+volatile signed int *lw_pio_sigma_ptr = NULL;
+volatile signed int *lw_pio_beta_ptr = NULL;
+volatile signed int *lw_pio_rho_ptr = NULL;
+volatile signed int *lw_pio_dt_ptr = NULL;
+
 // read offset is 0x10 for both busses
 // remember that eaxh axi master bus needs unique address
 #define FPGA_PIO_LW_WRITE 0x00
@@ -81,6 +90,13 @@ volatile signed int *lw_pio_read_z_ptr = NULL;
 #define FPGA_PIO_READ_x 0x20
 #define FPGA_PIO_READ_y 0x30
 #define FPGA_PIO_READ_z 0x40
+#define FPGA_PIO_INIT_x 0x50
+#define FPGA_PIO_INIT_y 0x60
+#define FPGA_PIO_INIT_z 0x70
+#define FPGA_PIO_sigma 0x80
+#define FPGA_PIO_beta 0x90
+#define FPGA_PIO_rho 0xA0
+#define FPGA_PIO_dt 0xB0
 
 // pixel buffer
 volatile unsigned int *vga_pixel_ptr = NULL;
@@ -93,9 +109,269 @@ void *vga_char_virtual_base;
 // /dev/mem file id
 int fd;
 
-// measure time
-struct timeval t1, t2;
-double elapsedTime;
+signed int x_loc;
+signed int y_loc;
+signed int z_loc;
+signed int prev_x_loc;
+signed int prev_y_loc;
+signed int prev_z_loc;
+
+#define TRUE 1
+#define FALSE 0
+
+char input_buffer[64];
+// access to enter condition
+// -- for signalling enter done
+pthread_mutex_t display_lock = PTHREAD_MUTEX_INITIALIZER;
+// access to print condition
+// -- for signalling print done
+pthread_mutex_t input_lock = PTHREAD_MUTEX_INITIALIZER;
+// the two condition variables related to the mutex above
+pthread_cond_t display_cond;
+pthread_cond_t input_cond;
+// control signals
+volatile int restart_flag = 0;
+volatile int reset_flag = 0;
+volatile int time_interval = 3000;
+volatile int pause_signal = 0;
+
+/* create a message to be displayed on the VGA
+        and LCD displays */
+char text_top_row[40] = "DE1-SoC ARM/FPGA\0";
+// char text_bottom_row[40] = "Cornell ece5760\0";
+char text_next[40] = "Lab1 ODE Solver\0";
+char sigma[40] = "sigma: 10.0";
+char beta[40] = "beta: 2.667";
+char rho[40] = "rho: 28.0";
+char xz[40] = "XZ Projection";
+char yz[40] = "YZ Projection";
+char xy[40] = "XY Projection";
+char color_index = 0;
+int color_counter = 0;
+
+int to_fixed(float f, int e)
+{
+  double a = f * pow(2, e);
+  int b = (int)(round(a));
+  if (a < 0)
+  {
+    // next three lines turns b into it's 2's complement.
+    b = abs(b);
+    b = ~b;
+    b = b + 1;
+  }
+  return b;
+}
+
+void *display()
+{
+  // reset the kernel
+  // *(lw_pio_ptr) = 3;
+  // *(lw_pio_ptr) = 2;
+  // *(lw_pio_ptr) = 1;
+  // *(lw_pio_ptr) = 0;
+
+  // *(lw_pio_ptr) = 1;
+  // *(lw_pio_ptr) = 0;
+  // *(lw_pio_ptr) = 1;
+  // *(lw_pio_ptr) = 0;
+
+  // signed int x_loc = *(lw_pio_read_x_ptr);
+  // signed int y_loc = *(lw_pio_read_y_ptr);
+  // signed int z_loc = *(lw_pio_read_z_ptr);
+  // signed int prev_x_loc, prev_y_loc, prev_z_loc;
+
+  // *(lw_pio_ptr) = 1;
+  // *(lw_pio_ptr) = 0;
+  // prev_x_loc = x_loc;
+  // prev_y_loc = y_loc;
+  // prev_z_loc = z_loc;
+
+  // ---------------
+  *lw_pio_init_x_ptr = to_fixed(-1.0, 20);
+  *lw_pio_init_y_ptr = to_fixed(0.1, 20);
+  *lw_pio_init_z_ptr = to_fixed(25.0, 20);
+  *lw_pio_sigma_ptr = to_fixed(10.0, 20);
+  *lw_pio_beta_ptr = to_fixed(8. / 3., 20);
+  *lw_pio_rho_ptr = to_fixed(28.0, 20);
+  *lw_pio_dt_ptr = to_fixed(1. / 256, 20);
+
+  *(lw_pio_ptr) = 3;
+  *(lw_pio_ptr) = 2;
+  *(lw_pio_ptr) = 1;
+  *(lw_pio_ptr) = 0;
+
+  x_loc = *(lw_pio_read_x_ptr);
+  y_loc = *(lw_pio_read_y_ptr);
+  z_loc = *(lw_pio_read_z_ptr);
+  prev_x_loc = x_loc;
+  prev_y_loc = y_loc;
+  prev_z_loc = z_loc;
+
+  // printf("display thread before cv\n");
+  // sleep(1);
+  // pthread_cond_signal(&input_cond);
+
+  while (1)
+  {
+
+    // // wait for input done
+    // pthread_mutex_lock(&display_lock);
+    // printf("here1\n");
+    // pthread_cond_wait(&display_cond, &display_lock);
+    // printf("here2\n");
+
+    while (reset_flag == 1)
+    {
+      // reset the kernel
+      VGA_box(0, 0, 639, 479, 0x0000);
+      color_index = 10;
+      *(lw_pio_ptr) = 3;
+      *(lw_pio_ptr) = 2;
+      *(lw_pio_ptr) = 1;
+      *(lw_pio_ptr) = 0;
+      if (restart_flag == 1)
+      {
+        VGA_box(0, 0, 639, 479, 0x0000);
+        x_loc = *(lw_pio_read_x_ptr);
+        y_loc = *(lw_pio_read_y_ptr);
+        z_loc = *(lw_pio_read_z_ptr);
+        prev_x_loc = x_loc;
+        prev_y_loc = y_loc;
+        prev_z_loc = z_loc;
+        restart_flag = 0;
+        reset_flag = 0;
+        break;
+      }
+    }
+
+    if ((reset_flag == 0) & (pause_signal == 0))
+    {
+      *(lw_pio_ptr) = 1;
+      *(lw_pio_ptr) = 0;
+      x_loc = *(lw_pio_read_x_ptr);
+      y_loc = *(lw_pio_read_y_ptr);
+      z_loc = *(lw_pio_read_z_ptr);
+
+      if (color_index++ == 11)
+        color_index = 0;
+
+      VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
+               100 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
+      VGA_line(480 + (int)(x_loc / 150000000.0 * 640), 150 + (int)(y_loc / 150000000.0 * 480), 480 + (int)(prev_x_loc / 150000000.0 * 640),
+               150 + (int)(prev_y_loc / 150000000.0 * 480), colors[color_index]);
+      VGA_line(320 + (int)(y_loc / 150000000.0 * 640), 275 + (int)(z_loc / 150000000.0 * 480), 320 + (int)(prev_y_loc / 150000000.0 * 640),
+               275 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
+      prev_x_loc = x_loc;
+      prev_y_loc = y_loc;
+      prev_z_loc = z_loc;
+      // printf("display thread before mutex unlock\n");
+      // // unlock the input_buffer
+      // pthread_mutex_unlock(&display_lock);
+      // printf("display thread after mutex unlock\n");
+      // // and tell read1 thread that print is done
+      // pthread_cond_signal(&input_cond);
+      // printf("display thread after cv\n");
+
+      usleep(time_interval);
+    }
+
+    while (pause_signal == 1)
+    {
+      if (pause_signal == 0)
+        break;
+    }
+  }
+}
+
+void *input()
+{
+  while (1)
+  {
+    // // wait for print done
+    // pthread_mutex_lock(&input_lock);
+    // printf("here3\n");
+    // pthread_cond_wait(&input_cond, &input_lock);
+    // printf("here4\n");
+    // the actual enter
+    printf("Display Command: ");
+    scanf("%s", input_buffer);
+    printf("received value: %s\n", input_buffer);
+
+    if (strcmp(input_buffer, "s") == 0)
+      time_interval = time_interval + 500;
+    else if (strcmp(input_buffer, "f") == 0)
+      time_interval = time_interval - 500;
+    else if (strcmp(input_buffer, "p") == 0)
+      pause_signal = 1;
+    else if (strcmp(input_buffer, "u") == 0)
+      pause_signal = 0;
+    else if (strcmp(input_buffer, "r") == 0)
+    {
+      reset_flag = 1;
+      restart_flag = 0;
+      printf("Default Condition (y/n): ");
+      scanf("%s", input_buffer);
+      if (strcmp(input_buffer, "y") == 0)
+      {
+        *lw_pio_init_x_ptr = to_fixed(-1.0, 20);
+        *lw_pio_init_y_ptr = to_fixed(0.1, 20);
+        *lw_pio_init_z_ptr = to_fixed(25.0, 20);
+        *lw_pio_sigma_ptr = to_fixed(10.0, 20);
+        *lw_pio_beta_ptr = to_fixed(8. / 3., 20);
+        *lw_pio_rho_ptr = to_fixed(28.0, 20);
+        *lw_pio_dt_ptr = to_fixed(1. / 256, 20);
+        restart_flag = 1;
+      }
+      else
+      {
+        printf("initial x position: ");
+        scanf("%s", input_buffer);
+        *lw_pio_init_x_ptr = to_fixed(strtof(input_buffer, NULL), 20);
+        printf("initial y position: ");
+        scanf("%s", input_buffer);
+        *lw_pio_init_y_ptr = to_fixed(strtof(input_buffer, NULL), 20);
+        printf("initial z position: ");
+        scanf("%s", input_buffer);
+        *lw_pio_init_z_ptr = to_fixed(strtof(input_buffer, NULL), 20);
+        printf("sigma value: ");
+        scanf("%s", input_buffer);
+        sprintf(sigma, "sigma: %s", input_buffer);
+        *lw_pio_sigma_ptr = to_fixed(strtof(input_buffer, NULL), 20);
+        printf("beta value: ");
+        scanf("%s", input_buffer);
+        sprintf(beta, "beta: %s", input_buffer);
+        *lw_pio_beta_ptr = to_fixed(strtof(input_buffer, NULL), 20);
+        printf("rho value: ");
+        scanf("%s", input_buffer);
+        sprintf(rho, "rho: %s", input_buffer);
+        *lw_pio_rho_ptr = to_fixed(strtof(input_buffer, NULL), 20);
+        printf("time interval step: ");
+        scanf("%s", input_buffer);
+        *lw_pio_dt_ptr = to_fixed(strtof(input_buffer, NULL), 20);
+
+        VGA_text_clear();
+        // write text
+        VGA_text(10, 1, text_top_row);
+        VGA_text(10, 2, text_next);
+        VGA_text(10, 3, sigma);
+        VGA_text(10, 4, beta);
+        VGA_text(10, 5, rho);
+        VGA_text(15, 33, xz);
+        VGA_text(50, 33, xy);
+        VGA_text(30, 55, yz);
+        restart_flag = 1;
+      }
+    }
+    // printf("input thread before mutex unlock\n");
+    // // unlock the input_buffer
+    // pthread_mutex_unlock(&input_lock);
+    // printf("input thread after mutex unlock\n");
+    // // and tell write1 thread that enter is complete
+    // pthread_cond_signal(&display_cond);
+    // printf("input thread after cv\n");
+  }
+}
 
 int main(void)
 {
@@ -127,6 +403,13 @@ int main(void)
   lw_pio_read_x_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_READ_x);
   lw_pio_read_y_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_READ_y);
   lw_pio_read_z_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_READ_z);
+  lw_pio_init_x_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_INIT_x);
+  lw_pio_init_y_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_INIT_y);
+  lw_pio_init_z_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_INIT_z);
+  lw_pio_sigma_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_sigma);
+  lw_pio_beta_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_beta);
+  lw_pio_rho_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_rho);
+  lw_pio_dt_ptr = (signed int *)(h2p_lw_virtual_base + FPGA_PIO_dt);
 
   // === get VGA char addr =====================
   // get virtual addr that maps to physical
@@ -154,200 +437,42 @@ int main(void)
   // Get the address that maps to the FPGA pixel buffer
   vga_pixel_ptr = (unsigned int *)(vga_pixel_virtual_base);
 
-  // reset the kernel
-  *(lw_pio_ptr) = 3;
-  *(lw_pio_ptr) = 2;
-  *(lw_pio_ptr) = 1;
-  *(lw_pio_ptr) = 0;
-
-  /* create a message to be displayed on the VGA
-          and LCD displays */
-  char text_top_row[40] = "DE1-SoC ARM/FPGA\0";
-  char text_bottom_row[40] = "Cornell ece5760\0";
-  char text_next[40] = "Lab1 ODE Solver\0";
-  char num_string[20], time_string[20];
-  char color_index = 0;
-  int color_counter = 0;
-
-  // position of circle primitive
-  int circle_xy = 0;
-  int circle_yz = 0;
-  int circle_xz = 0;
-  int circle_x = 0;
-
   //  clear the screen
   VGA_box(0, 0, 639, 479, 0x0000);
   // clear the text
   VGA_text_clear();
   // write text
   VGA_text(10, 1, text_top_row);
-  VGA_text(10, 2, text_bottom_row);
-  VGA_text(10, 3, text_next);
-
-  *(lw_pio_ptr) = 1;
-  *(lw_pio_ptr) = 0;
-  *(lw_pio_ptr) = 1;
-  *(lw_pio_ptr) = 0;
-
-  signed int x_loc = *(lw_pio_read_x_ptr);
-  signed int y_loc = *(lw_pio_read_y_ptr);
-  signed int z_loc = *(lw_pio_read_z_ptr);
-  signed int prev_x_loc, prev_y_loc, prev_z_loc;
-
-  *(lw_pio_ptr) = 1;
-  *(lw_pio_ptr) = 0;
-  prev_x_loc = x_loc;
-  prev_y_loc = y_loc;
-  prev_z_loc = z_loc;
-
-  // // ===========================================
-  while (1)
-  {
-    int num, pio_read;
-    int junk;
-
-    // // reset: 2; clk: 1
-    // junk = scanf("%d", &num);
-    // // send to PIOs
-    // *(lw_pio_ptr) = num;
-    // // receive back and print
-    // printf("pio in=%d %x %x %x\n\r", *(lw_pio_read_ptr), *(lw_pio_read_x_ptr), *(lw_pio_read_y_ptr), *(lw_pio_read_z_ptr));
-    *(lw_pio_ptr) = 1;
-    *(lw_pio_ptr) = 0;
-    x_loc = *(lw_pio_read_x_ptr);
-    y_loc = *(lw_pio_read_y_ptr);
-    z_loc = *(lw_pio_read_z_ptr);
-
-    printf("%d %d %d\n\r", x_loc, y_loc, z_loc);
-    printf("%f %f\n\r", x_loc / 40000000.0 * 640, y_loc / 40000000.0 * 480);
-    printf("%f %f\n\r", prev_x_loc / 40000000.0 * 640, prev_y_loc / 40000000.0 * 480);
-
-    // // start timer
-    // gettimeofday(&t1, NULL);
-
-    // VGA_PIXEL(320 + (int)(x_loc / 100000000.0 * 640), 240 + (int)(y_loc / 100000000.0 * 480), magenta);
-
-    // void VGA_line(int x1, int y1, int x2, int y2, short c)
-    // VGA_line(210 + (rand() & 0x7f), 350 + (rand() & 0x7f), 210 + (rand() & 0x7f),
-    //          350 + (rand() & 0x7f), colors[color_index]);
-    if (color_index++ == 11)
-      color_index = 0;
-
-    VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
-             100 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
-    VGA_line(480 + (int)(x_loc / 150000000.0 * 640), 150 + (int)(y_loc / 150000000.0 * 480), 480 + (int)(prev_x_loc / 150000000.0 * 640),
-             150 + (int)(prev_y_loc / 150000000.0 * 480), colors[color_index]);
-    VGA_line(320 + (int)(y_loc / 150000000.0 * 640), 300 + (int)(z_loc / 150000000.0 * 480), 320 + (int)(prev_y_loc / 150000000.0 * 640),
-             300 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
-    prev_x_loc = x_loc;
-    prev_y_loc = y_loc;
-    prev_z_loc = z_loc;
-    usleep(1000);
-
-    // // stop timer
-    // gettimeofday(&t2, NULL);
-    // elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000000.0; // sec to us
-    // elapsedTime += (t2.tv_usec - t1.tv_usec);          // us
-    // sprintf(time_string, "T = %6.0f uSec  ", elapsedTime);
-    // VGA_text(10, 4, time_string);
-
-  } // end while(1)
-
-  // R bits 11-15 mask 0xf800
-  // G bits 5-10  mask 0x07e0
-  // B bits 0-4   mask 0x001f
-  // so color = B+(G<<5)+(R<<11);
-
-  // /* create a message to be displayed on the VGA
-  //         and LCD displays */
-  // char text_top_row[40] = "DE1-SoC ARM/FPGA\0";
-  // char text_bottom_row[40] = "Cornell ece5760\0";
-  // char text_next[40] = "Lab1 ODE Solver\0";
-  // char num_string[20], time_string[20];
-  // char color_index = 0;
-  // int color_counter = 0;
-
-  // // position of disk primitive
-  // int disc_x = 0;
-  // // position of circle primitive
-  // int circle_x = 0;
-  // // position of box primitive
-  // int box_x = 5;
-  // // position of vertical line primitive
-  // int Vline_x = 350;
-  // // position of horizontal line primitive
-  // int Hline_y = 250;
-
-  // // VGA_text (34, 1, text_top_row);
-  // // VGA_text (34, 2, text_bottom_row);
-  // //  clear the screen
-  // VGA_box(0, 0, 639, 479, 0xffff);
-  // // clear the text
-  // VGA_text_clear();
-  // // write text
-  // VGA_text(10, 1, text_top_row);
   // VGA_text(10, 2, text_bottom_row);
-  // VGA_text(10, 3, text_next);
+  VGA_text(10, 2, text_next);
+  VGA_text(10, 3, sigma);
+  VGA_text(10, 4, beta);
+  VGA_text(10, 5, rho);
+  VGA_text(15, 33, xz);
+  VGA_text(50, 33, xy);
+  VGA_text(30, 55, yz);
 
-  // while (1)
-  // {
-  // // start timer
-  // gettimeofday(&t1, NULL);
+  int status;
+  // the thread identifiers
+  pthread_t thread_display, thread_input;
 
-  // //VGA_box(int x1, int y1, int x2, int y2, short pixel_color)
-  // VGA_box(64, 0, 240, 50, blue);   // blue box
-  // VGA_box(250, 0, 425, 50, red);   // red box
-  // VGA_box(435, 0, 600, 50, green); // green box
+  // the condition variables
+  pthread_cond_init(&display_cond, NULL);
+  pthread_cond_init(&input_cond, NULL);
 
-  // // cycle thru the colors
-  // if (color_index++ == 11)
-  //   color_index = 0;
+  // For portability, explicitly create threads in a joinable state
+  //  thread attribute used here to allow JOIN
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  // //void VGA_disc(int x, int y, int r, short pixel_color)
-  // VGA_disc(disc_x, 100, 20, colors[color_index]);
-  // disc_x += 35;
-  // if (disc_x > 640)
-  //   disc_x = 0;
+  // now the threads
+  pthread_create(&thread_display, NULL, display, NULL);
+  pthread_create(&thread_input, NULL, input, NULL);
 
-  // // void VGA_circle(int x, int y, int r, short pixel_color)
-  // VGA_circle(320, 200, circle_x, colors[color_index]);
-  // VGA_circle(320, 200, circle_x + 1, colors[color_index]);
-  // circle_x += 2;
-  // if (circle_x > 99)
-  //   circle_x = 0;
-
-  // //void VGA_rect(int x1, int y1, int x2, int y2, short pixel_color)
-  // VGA_rect(10, 478, box_x, 478 - box_x, rand() & 0xffff);
-  // box_x += 3;
-  // if (box_x > 195)
-  //   box_x = 10;
-
-  // // void VGA_line(int x1, int y1, int x2, int y2, short c)
-  // VGA_line(210 + (rand() & 0x7f), 350 + (rand() & 0x7f), 210 + (rand() & 0x7f),
-  //          350 + (rand() & 0x7f), colors[color_index]);
-
-  // // void VGA_Vline(int x1, int y1, int y2, short pixel_color)
-  // VGA_Vline(Vline_x, 475, 475 - (Vline_x >> 2), rand() & 0xffff);
-  // Vline_x += 2;
-  // if (Vline_x > 620)
-  //   Vline_x = 350;
-
-  // //void VGA_Hline(int x1, int y1, int x2, short pixel_color)
-  // VGA_Hline(400, Hline_y, 550, rand() & 0xffff);
-  // Hline_y += 2;
-  // if (Hline_y > 400)
-  //   Hline_y = 240;
-
-  // // stop timer
-  // gettimeofday(&t2, NULL);
-  // elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000000.0; // sec to us
-  // elapsedTime += (t2.tv_usec - t1.tv_usec);          // us
-  // sprintf(time_string, "T = %6.0f uSec  ", elapsedTime);
-  // VGA_text(10, 4, time_string);
-  // // set frame rate
-  // // usleep(17000);
-
-  // } // end while(1)
+  pthread_join(thread_display, NULL);
+  pthread_join(thread_input, NULL);
+  return 0;
 } // end main
 
 /****************************************************************************************
