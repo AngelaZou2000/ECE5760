@@ -134,6 +134,8 @@ volatile int restart_flag = 0;
 volatile int reset_flag = 0;
 volatile int time_interval = 3000;
 volatile int pause_signal = 0;
+volatile int hunter_signal = 0;
+volatile int bruce_signal = 0;
 
 /* create a message to be displayed on the VGA
         and LCD displays */
@@ -148,6 +150,9 @@ char yz[40] = "YZ Projection";
 char xy[40] = "XY Projection";
 char color_index = 0;
 int color_counter = 0;
+int color_x = 0;
+int color_y = 0;
+int color_z = 0;
 
 int to_fixed(float f, int e)
 {
@@ -165,29 +170,6 @@ int to_fixed(float f, int e)
 
 void *display()
 {
-  // reset the kernel
-  // *(lw_pio_ptr) = 3;
-  // *(lw_pio_ptr) = 2;
-  // *(lw_pio_ptr) = 1;
-  // *(lw_pio_ptr) = 0;
-
-  // *(lw_pio_ptr) = 1;
-  // *(lw_pio_ptr) = 0;
-  // *(lw_pio_ptr) = 1;
-  // *(lw_pio_ptr) = 0;
-
-  // signed int x_loc = *(lw_pio_read_x_ptr);
-  // signed int y_loc = *(lw_pio_read_y_ptr);
-  // signed int z_loc = *(lw_pio_read_z_ptr);
-  // signed int prev_x_loc, prev_y_loc, prev_z_loc;
-
-  // *(lw_pio_ptr) = 1;
-  // *(lw_pio_ptr) = 0;
-  // prev_x_loc = x_loc;
-  // prev_y_loc = y_loc;
-  // prev_z_loc = z_loc;
-
-  // ---------------
   *lw_pio_init_x_ptr = to_fixed(-1.0, 20);
   *lw_pio_init_y_ptr = to_fixed(0.1, 20);
   *lw_pio_init_z_ptr = to_fixed(25.0, 20);
@@ -241,27 +223,58 @@ void *display()
         prev_z_loc = z_loc;
         restart_flag = 0;
         reset_flag = 0;
+        hunter_signal = 0;
+        bruce_signal = 0;
         break;
       }
     }
 
     if ((reset_flag == 0) & (pause_signal == 0))
     {
+      if (hunter_signal == 1)
+      {
+        VGA_box(0, 0, 639, 479, 0x0000);
+      }
       *(lw_pio_ptr) = 1;
       *(lw_pio_ptr) = 0;
       x_loc = *(lw_pio_read_x_ptr);
       y_loc = *(lw_pio_read_y_ptr);
       z_loc = *(lw_pio_read_z_ptr);
 
+      // blue
+      color_x = (((x_loc + 21000000) / 42000000.0) * 20) + 11;
+      // printf("bluex: %d\n", color_x);
+      color_x = color_x + (0 << 5) + (0 << 11);
+      // red
+      color_y = (((y_loc + 28000000) / 56000000.0) * 20) + 11;
+      // printf("redy: %d\n", color_y);
+      color_y = (0 + (0 << 5) + (color_y << 11));
+      // green
+      color_z = (((z_loc) / 60000000.0) * 40) + 22;
+      // printf("greenz: %d\n", color_z);
+      color_z = (0 + (color_z << 5) + (0 << 11));
+
       if (color_index++ == 11)
         color_index = 0;
 
-      VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
-               100 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
-      VGA_line(480 + (int)(x_loc / 150000000.0 * 640), 150 + (int)(y_loc / 150000000.0 * 480), 480 + (int)(prev_x_loc / 150000000.0 * 640),
-               150 + (int)(prev_y_loc / 150000000.0 * 480), colors[color_index]);
-      VGA_line(320 + (int)(y_loc / 150000000.0 * 640), 275 + (int)(z_loc / 150000000.0 * 480), 320 + (int)(prev_y_loc / 150000000.0 * 640),
-               275 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
+      if (bruce_signal == 1)
+      {
+        VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
+                 100 + (int)(prev_z_loc / 150000000.0 * 480), color_y);
+        VGA_line(480 + (int)(x_loc / 150000000.0 * 640), 150 + (int)(y_loc / 150000000.0 * 480), 480 + (int)(prev_x_loc / 150000000.0 * 640),
+                 150 + (int)(prev_y_loc / 150000000.0 * 480), color_z);
+        VGA_line(320 + (int)(y_loc / 150000000.0 * 640), 275 + (int)(z_loc / 150000000.0 * 480), 320 + (int)(prev_y_loc / 150000000.0 * 640),
+                 275 + (int)(prev_z_loc / 150000000.0 * 480), color_x);
+      }
+      else
+      {
+        VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
+                 100 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
+        VGA_line(480 + (int)(x_loc / 150000000.0 * 640), 150 + (int)(y_loc / 150000000.0 * 480), 480 + (int)(prev_x_loc / 150000000.0 * 640),
+                 150 + (int)(prev_y_loc / 150000000.0 * 480), colors[color_index]);
+        VGA_line(320 + (int)(y_loc / 150000000.0 * 640), 275 + (int)(z_loc / 150000000.0 * 480), 320 + (int)(prev_y_loc / 150000000.0 * 640),
+                 275 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
+      }
       prev_x_loc = x_loc;
       prev_y_loc = y_loc;
       prev_z_loc = z_loc;
@@ -299,13 +312,32 @@ void *input()
     printf("received value: %s\n", input_buffer);
 
     if (strcmp(input_buffer, "s") == 0)
-      time_interval = time_interval + 500;
+      time_interval = (int)(time_interval * 1.5);
     else if (strcmp(input_buffer, "f") == 0)
-      time_interval = time_interval - 500;
+      time_interval = (int)(time_interval / 1.5);
     else if (strcmp(input_buffer, "p") == 0)
       pause_signal = 1;
     else if (strcmp(input_buffer, "u") == 0)
       pause_signal = 0;
+    else if (strcmp(input_buffer, "hunter_mode") == 0)
+      hunter_signal = 1;
+    else if (strcmp(input_buffer, "bruce_mode") == 0)
+    {
+      VGA_box(0, 0, 639, 479, 0x0000);
+      x_loc = *(lw_pio_read_x_ptr);
+      y_loc = *(lw_pio_read_y_ptr);
+      z_loc = *(lw_pio_read_z_ptr);
+      prev_x_loc = x_loc;
+      prev_y_loc = y_loc;
+      prev_z_loc = z_loc;
+      x_loc = *(lw_pio_read_x_ptr);
+      y_loc = *(lw_pio_read_y_ptr);
+      z_loc = *(lw_pio_read_z_ptr);
+      prev_x_loc = x_loc;
+      prev_y_loc = y_loc;
+      prev_z_loc = z_loc;
+      bruce_signal = 1;
+    }
     else if (strcmp(input_buffer, "r") == 0)
     {
       reset_flag = 1;
