@@ -136,6 +136,7 @@ char xy[40] = "XY Projection";
 // Used to iterate through colors array
 char color_index = 0;
 int color_counter = 0;
+// Used for Bruce mode
 int color_x = 0;
 int color_y = 0;
 int color_z = 0;
@@ -186,7 +187,7 @@ void *display()
     // If reset
     while (reset_flag == 1)
     {
-      // clear screen and reset the kernel
+      // clear screen and reset the kernel (Bit 1 is reset, Bit 0 is clock)
       VGA_box(0, 0, 639, 479, 0x0000);
       color_index = 10;
       *(lw_pio_ptr) = 3;
@@ -203,6 +204,7 @@ void *display()
         prev_x_loc = x_loc;
         prev_y_loc = y_loc;
         prev_z_loc = z_loc;
+        // reset flags
         restart_flag = 0;
         reset_flag = 0;
         hunter_signal = 0;
@@ -213,8 +215,10 @@ void *display()
     // If not reset or paused
     if ((reset_flag == 0) & (pause_signal == 0))
     {
+      // Hunter mode - only the current trace is shown (looks like a dot/tiny line tracing the path of the plot)
       if (hunter_signal == 1)
       {
+        // Clear the screen everytime so only the current line is shown
         VGA_box(0, 0, 639, 479, 0x0000);
       }
       *(lw_pio_ptr) = 1;
@@ -223,23 +227,23 @@ void *display()
       y_loc = *(lw_pio_read_y_ptr);
       z_loc = *(lw_pio_read_z_ptr);
 
+      // Used for Bruce mode - setting the color using the third dimension in order to model depth
       // blue
       color_x = (((x_loc + 21000000) / 42000000.0) * 20) + 11;
-      // printf("bluex: %d\n", color_x);
       color_x = color_x + (0 << 5) + (0 << 11);
       // red
       color_y = (((y_loc + 28000000) / 56000000.0) * 20) + 11;
-      // printf("redy: %d\n", color_y);
       color_y = (0 + (0 << 5) + (color_y << 11));
       // green
       color_z = (((z_loc) / 60000000.0) * 40) + 22;
-      // printf("greenz: %d\n", color_z);
       color_z = (0 + (color_z << 5) + (0 << 11));
 
       // Go back to beginning of color array if at the end
       if (color_index++ == 11)
         color_index = 0;
 
+      // Bruce mode - plot where the saturation of the graph at a certain point is based on the third dimension 
+      // Used to model depth of the third dimension - darker is further away, brighter is closer
       if (bruce_signal == 1)
       {
         VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
@@ -251,6 +255,7 @@ void *display()
       }
       else
       {
+        // Normal mode - we cycle through a color index array so we plot in rainbow colors
         // Graph line between previous and current point, resize/scale within screen
         VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
                  100 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
@@ -299,10 +304,13 @@ void *input()
     // "u" = unpause / resume
     else if (strcmp(input_buffer, "u") == 0)
       pause_signal = 0;
+    // "hunter mode" = graphing mode where a small rainbow line traces the path
     else if (strcmp(input_buffer, "hunter_mode") == 0)
       hunter_signal = 1;
+    // "bruce mode" = depth of third dimension encoded in the color
     else if (strcmp(input_buffer, "bruce_mode") == 0)
     {
+      // clear the screen and initialize for "bruce mode"
       VGA_box(0, 0, 639, 479, 0x0000);
       x_loc = *(lw_pio_read_x_ptr);
       y_loc = *(lw_pio_read_y_ptr);
@@ -325,7 +333,7 @@ void *input()
       restart_flag = 0;
       printf("Default Condition (y/n): ");
       scanf("%s", input_buffer);
-      // Set to default initial values/parameters
+      // "y" = Set to default initial values/parameters
       if (strcmp(input_buffer, "y") == 0)
       {
         *lw_pio_init_x_ptr = to_fixed(-1.0, 20);
@@ -337,7 +345,7 @@ void *input()
         *lw_pio_dt_ptr = to_fixed(1. / 256, 20);
         restart_flag = 1;
       }
-      // User inputs custom values for init positions, parameters, & dt
+      // "n" = User inputs custom values for init positions, parameters, and dt
       else
       {
         printf("initial x position: ");
