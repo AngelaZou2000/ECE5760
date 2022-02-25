@@ -4,11 +4,11 @@ module one_column
   input clk,
   input reset,
   input [9:0] column_size,
-  input [17:0] init_node,
-  input [17:0] incr_value,
-  input [17:0] init_center_node,
-  input [17:0] init_rho,
-  output [17:0] node_out
+  input signed [17:0] init_node,
+  input signed [17:0] incr_value,
+  input signed [17:0] init_center_node,
+  input signed [17:0] init_rho,
+  output signed [17:0] node_out
 );
 
   reg [17:0] center_node;
@@ -81,7 +81,10 @@ module one_column
       counter <= 0;
       init_node_value <= init_node;
     end
-    INIT_LOAD: counter <= counter + 1'b1;
+    INIT_LOAD: begin
+      counter <= counter + 1'b1;
+      init_node_value = (counter < (column_size>>1))? init_node_value + incr_value : init_node_value - incr_value;
+    end
     BASE_LOAD_2: begin
       counter <= 0;
       curr_node <= curr_read_data;
@@ -105,7 +108,6 @@ module one_column
   always@(*) begin
     case(state_reg)
       INIT_LOAD: begin
-        init_node_value = (counter < (column_size>>1))? init_node_value + incr_value : init_node_value - incr_value;
         curr_write_enable = 1'b1;
         curr_write_data = init_node_value; //(counter == (column_size>>1)) ? init_center_node : init_node;
         curr_write_address = counter;
@@ -149,7 +151,7 @@ module one_column
   end
 
   // TODO: edge handling
-  wire [17:0] rho;
+  wire signed [17:0] rho;
   node_compute #(eta_width) compute_inst 
   (
     .curr_node(curr_node),
@@ -198,18 +200,18 @@ endmodule
 module rho_update
 #(parameter g_tension_width)
 (
-  input [17:0] init_rho,
-  input [17:0] center_node,
-  output [17:0] rho_value
+  input signed [17:0] init_rho,
+  input signed [17:0] center_node,
+  output signed [17:0] rho_value
 );
-  wire [17:0] rho_term1, rho_term2;
+  wire signed [17:0] rho_term1, rho_term2;
   assign rho_term1 = center_node >>> g_tension_width;
   signed_mult inst2 (
     .out(rho_term2),
     .a(rho_term1),
     .b(rho_term1)
   );
-  assign rho_value = (18'h0FAE1 < init_rho + rho_term2) ? 18'h0FAE1 : init_rho + rho_term2;
+  assign rho_value = (18'h0FAE1 < (init_rho + rho_term2)) ? 18'h0FAE1 : (init_rho + rho_term2);
 endmodule
 
 module signed_mult (out, a, b);
