@@ -1,19 +1,22 @@
 `timescale 1ns/1ns
 
-module one_node_tb();
+module one_column_tb();
 	
 	reg clk, reset;
 	
 	wire signed [17:0]  node_out;
 
-  one_node #(9, 5) DUT (
+  one_column #(9, 5) DUT (
   .clk(clk),
   .reset(reset),
+  .column_size(10'd7),
   .init_node(18'h01000),
+  .incr_value(18'h02492),
+  .init_center_node(18'h01000),
   .init_rho(18'h01000), 
   .node_out(node_out)
 );
-	
+
 	//Initialize clocks and index
 	initial begin
     // $dumpfile("dump.vcd");
