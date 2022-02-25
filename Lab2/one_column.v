@@ -8,11 +8,11 @@ module one_column
   input signed [17:0] incr_value,
   input signed [17:0] init_center_node,
   input signed [17:0] init_rho,
-  output signed [17:0] node_out
+  input signed [17:0] left_node_in,
+  input signed [17:0] right_node_in,
+  output reg signed [17:0] center_node,
+  output signed [17:0] curr_node_out
 );
-
-  reg [17:0] center_node;
-  assign node_out = center_node;
 
   reg [17:0] curr_write_data, prev_write_data;
   reg [8:0] curr_write_address, curr_read_address, prev_write_address, prev_read_address;
@@ -73,17 +73,21 @@ module one_column
   // ---------------- state output ----------------------
   reg [17:0] curr_node, prev_node, top_node, bottom_node;
   wire [17:0] next_node;
-  reg [17:0] init_node_value;
+  reg [17:0] init_node_value, init_node_value_term1;
+
+  assign curr_node_out = curr_node;
 
   always @ (posedge clk) begin
     case (state_reg)
     INIT: begin
       counter <= 0;
       init_node_value <= init_node;
+      init_node_value_term1 <= init_node;
     end
     INIT_LOAD: begin
       counter <= counter + 1'b1;
-      init_node_value = (counter < (column_size>>1))? init_node_value + incr_value : init_node_value - incr_value;
+      init_node_value_term1 = (counter < (column_size>>1))? init_node_value_term1 + incr_value : init_node_value_term1 - incr_value;
+      init_node_value = (init_node_value_term1 < init_center_node) ? init_node_value_term1 : init_center_node;
     end
     BASE_LOAD_2: begin
       counter <= 0;
@@ -151,25 +155,25 @@ module one_column
   end
 
   // TODO: edge handling
-  wire signed [17:0] rho;
+  // wire signed [17:0] rho;
   node_compute #(eta_width) compute_inst 
   (
     .curr_node(curr_node),
-    .left_node(18'd0),
-    .right_node(18'd0),
+    .left_node(left_node_in),
+    .right_node(right_node_in),
     .top_node((counter==(column_size-1))?18'd0:top_node),
     .bottom_node((counter==0)?18'd0:bottom_node),
     .prev_node(prev_node),
-    .rho(rho),
+    .rho(init_rho), //rho),
     .next_node(next_node)
   );
 
-  rho_update #(g_tension_width) rho_inst
-  (
-    .init_rho(init_rho),
-    .center_node(center_node),
-    .rho_value(rho)
-  );
+  // rho_update #(g_tension_width) rho_inst
+  // (
+  //   .init_rho(init_rho),
+  //   .center_node(center_node),
+  //   .rho_value(rho)
+  // );
 
 endmodule
 
