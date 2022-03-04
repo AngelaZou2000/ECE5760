@@ -3,8 +3,10 @@
 module one_column_tb();
 	
 	reg clk, reset;
+	reg iteration_enable;
 	
 	wire signed [17:0]  center_node, curr_node_out;
+	wire [12:0] cycle_time;
 
   one_column #(9, 5) DUT (
   .clk(clk),
@@ -16,8 +18,10 @@ module one_column_tb();
   .init_rho(18'h01000), 
 	.left_node_in(18'd0),
 	.right_node_in(18'd0),
+	.iteration_enable(iteration_enable),
   .center_node(center_node),
-	.curr_node_out(curr_node_out)
+	.curr_node_out(curr_node_out),
+	.cycle_time(cycle_time)
 );
 
 	//Initialize clocks and index
@@ -32,6 +36,14 @@ module one_column_tb();
 	always begin
 		#10
 		clk  = !clk;
+	end
+
+	//Toggle iteration_enable signal
+	always begin
+		#1000
+		iteration_enable = 1'b1;
+		#20
+		iteration_enable = 1'b0;
 	end
 	
 	//Intialize and drive signals

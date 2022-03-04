@@ -14,7 +14,9 @@ module drum #(
   input signed [17:0] incr_value_row,
   input signed [17:0] init_center_node,
   input signed [17:0] init_rho,
-  output signed [17:0] center_node_out
+  input iteration_enable,
+  output signed [17:0] center_node_out,
+  output        [12:0] cycle_time_out
 );
   wire signed [17:0] rho;
   reg signed [17:0] init_center_node_array [number_of_columns-1:0];
@@ -34,6 +36,8 @@ module drum #(
   // TODO: initialization
   wire signed [17:0] curr_node_out [number_of_columns-1:0];
   wire signed [17:0] center_node [number_of_columns-1:0];
+  wire [12:0] cycle_time [number_of_columns-1:0];
+  assign cycle_time_out = cycle_time[number_of_columns>>1];
   genvar col;
   generate
     for (col = 0; col < number_of_columns; col = col + 1) begin: DRUM_COL
@@ -48,8 +52,10 @@ module drum #(
           .init_rho(rho),
           .left_node_in(18'd0),
           .right_node_in(curr_node_out[col+1]),
+          .iteration_enable(iteration_enable),
           .center_node(center_node[col]),
-          .curr_node_out(curr_node_out[col])
+          .curr_node_out(curr_node_out[col]),
+          .cycle_time(cycle_time[col])
         );
       end else if (col==(number_of_columns-1)) begin
         one_column #(eta_width, g_tension_width) inst_col (
@@ -62,8 +68,10 @@ module drum #(
           .init_rho(rho),
           .left_node_in(curr_node_out[col-1]),
           .right_node_in(18'd0),
+          .iteration_enable(iteration_enable),
           .center_node(center_node[col]),
-          .curr_node_out(curr_node_out[col])
+          .curr_node_out(curr_node_out[col]),
+          .cycle_time(cycle_time[col])
         );
       end else begin
         one_column #(eta_width, g_tension_width) inst_col (
@@ -76,8 +84,10 @@ module drum #(
           .init_rho(rho),
           .left_node_in(curr_node_out[col-1]),
           .right_node_in(curr_node_out[col+1]),
+          .iteration_enable(iteration_enable),
           .center_node(center_node[col]),
-          .curr_node_out(curr_node_out[col])
+          .curr_node_out(curr_node_out[col]),
+          .cycle_time(cycle_time[col])
         );
       end
     end

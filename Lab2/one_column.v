@@ -10,8 +10,10 @@ module one_column
   input signed [17:0] init_rho,
   input signed [17:0] left_node_in,
   input signed [17:0] right_node_in,
+  input iteration_enable,
   output signed [17:0] center_node,
-  output signed [17:0] curr_node_out
+  output signed [17:0] curr_node_out,
+  output reg [12:0] cycle_time
 );
 
   reg signed [17:0] center_node_reg;
@@ -20,6 +22,7 @@ module one_column
   reg curr_write_enable, prev_write_enable;
   wire [17:0] curr_read_data, prev_read_data;
   assign center_node = center_node_reg;
+  // reg [12:0] cycle_time;
 
   M10K #(18) mem_curr_node (
     .clk(clk),
@@ -49,6 +52,7 @@ module one_column
   localparam BASE_LOAD_2 = 3'd3;
   localparam CALC = 3'd4;
   localparam UPDATE = 3'd5;
+  localparam ITERATION_DONE = 3'd6;
 
   // ------------- next state update -------------------
   always@(posedge clk) begin
@@ -69,7 +73,11 @@ module one_column
       BASE_LOAD_1: state_next = BASE_LOAD_2;
       BASE_LOAD_2: state_next = CALC;
       CALC: state_next = UPDATE;
-      UPDATE: state_next = CALC;
+      UPDATE: begin
+        if (counter != (column_size-1)) state_next = CALC;
+        else state_next = ITERATION_DONE;
+      end
+      ITERATION_DONE: if (iteration_enable) state_next = CALC;
     endcase
   end
 
@@ -84,6 +92,7 @@ module one_column
     case (state_reg)
     INIT: begin
       counter <= 0;
+      cycle_time <= 0;
       init_node_value <= init_node;
       init_node_value_term1 <= init_node;
     end
@@ -97,21 +106,29 @@ module one_column
       curr_node <= curr_read_data;
     end
     CALC: begin
+      cycle_time = cycle_time + 1;
       top_node <= curr_read_data;
       prev_node <= prev_read_data;
       center_node_reg <= (counter == (column_size>>1)) ? next_node : center_node_reg;
     end
     UPDATE: begin
+      cycle_time = cycle_time + 1;
       curr_node <= top_node;
       bottom_node <= curr_node;
       top_node <= curr_read_data;
       prev_node <= prev_read_data;
-      counter <= (counter==(column_size-1)) ? 0 : counter + 1;
+      // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
+      counter <= counter + 1;
+    end
+    ITERATION_DONE: begin
+      if (iteration_enable) begin
+        counter <= 0;
+        cycle_time <= 0;
+      end
     end
     endcase
   end
 
-  // assign curr_write_enable = (state_reg == INIT_LOAD) | (state_reg == UPDATE);
   always@(*) begin
     case(state_reg)
       INIT_LOAD: begin
