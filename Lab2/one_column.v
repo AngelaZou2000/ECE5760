@@ -106,13 +106,13 @@ module one_column
       curr_node <= curr_read_data;
     end
     CALC: begin
-      cycle_time = cycle_time + 1;
+      cycle_time <= cycle_time + 1;
       top_node <= curr_read_data;
       prev_node <= prev_read_data;
       center_node_reg <= (counter == (column_size>>1)) ? next_node : center_node_reg;
     end
     UPDATE: begin
-      cycle_time = cycle_time + 1;
+      cycle_time <= cycle_time + 1;
       curr_node <= top_node;
       bottom_node <= curr_node;
       top_node <= curr_read_data;
