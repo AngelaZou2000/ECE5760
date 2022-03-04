@@ -42,17 +42,19 @@ module one_column
     .q(prev_read_data)
   );
 
-  reg [2:0] state_reg, state_next;
+  reg [3:0] state_reg, state_next;
   reg [9:0] counter;
 
   // state parameters
-  localparam INIT = 3'd0;
-  localparam INIT_LOAD = 3'd1;
-  localparam BASE_LOAD_1 = 3'd2;
-  localparam BASE_LOAD_2 = 3'd3;
-  localparam CALC = 3'd4;
-  localparam UPDATE = 3'd5;
-  localparam ITERATION_DONE = 3'd6;
+  localparam INIT = 4'd0;
+  localparam INIT_LOAD = 4'd1;
+  localparam BASE_LOAD_1 = 4'd2;
+  localparam BASE_LOAD_2 = 4'd3;
+	localparam BASE_WAIT = 4'd7;
+  localparam CALC = 4'd4;
+  localparam UPDATE = 4'd5;
+	localparam WAIT = 4'd8;
+  localparam ITERATION_DONE = 4'd6;
 
   // ------------- next state update -------------------
   always@(posedge clk) begin
@@ -71,12 +73,14 @@ module one_column
       INIT: state_next = INIT_LOAD;
       INIT_LOAD: if (counter==(column_size-1)) state_next = BASE_LOAD_1;
       BASE_LOAD_1: state_next = BASE_LOAD_2;
-      BASE_LOAD_2: state_next = CALC;
+      BASE_LOAD_2: state_next = BASE_WAIT;
+			BASE_WAIT: state_next = CALC;
       CALC: state_next = UPDATE;
       UPDATE: begin
-        if (counter != (column_size-1)) state_next = CALC;
+        if (counter != (column_size-1)) state_next = WAIT;
         else state_next = ITERATION_DONE;
       end
+			WAIT: state_next = CALC;
       ITERATION_DONE: if (iteration_enable) state_next = CALC;
     endcase
   end
@@ -105,6 +109,9 @@ module one_column
       counter <= 0;
       curr_node <= curr_read_data;
     end
+		BASE_WAIT: begin
+      curr_node <= curr_read_data;
+		end
     CALC: begin
       cycle_time <= cycle_time + 1;
       top_node <= curr_read_data;
@@ -115,8 +122,8 @@ module one_column
       cycle_time <= cycle_time + 1;
       curr_node <= top_node;
       bottom_node <= curr_node;
-      top_node <= curr_read_data;
-      prev_node <= prev_read_data;
+      // top_node <= curr_read_data;
+      // prev_node <= prev_read_data;
       // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
       counter <= counter + 1;
     end
@@ -188,13 +195,6 @@ module one_column
     .next_node(next_node)
   );
 
-  // rho_update #(g_tension_width) rho_inst
-  // (
-  //   .init_rho(init_rho),
-  //   .center_node(center_node),
-  //   .rho_value(rho)
-  // );
-
 endmodule
 
 module node_compute 
@@ -258,11 +258,12 @@ module M10K #(parameter data_width) (
   output reg [data_width-1:0] q
 );
   reg [19:0] mem [511:0];
-  //reg [18:0] buffer;
+  reg [data_width-1:0] buffer;
   always @ (posedge clk) begin
     if (write_enable) begin
       mem[write_address] <= d;
     end
-    q <= mem[read_address][data_width-1:0];
+    buffer <= mem[read_address][data_width-1:0];
+		q <= buffer;
   end
 endmodule
