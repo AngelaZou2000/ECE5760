@@ -10,14 +10,17 @@ module one_column
   input signed [17:0] init_rho,
   input signed [17:0] left_node_in,
   input signed [17:0] right_node_in,
-  output reg signed [17:0] center_node,
+  output signed [17:0] center_node,
   output signed [17:0] curr_node_out
 );
 
+  reg signed [17:0] center_node_reg;
   reg [17:0] curr_write_data, prev_write_data;
   reg [8:0] curr_write_address, curr_read_address, prev_write_address, prev_read_address;
   reg curr_write_enable, prev_write_enable;
   wire [17:0] curr_read_data, prev_read_data;
+  assign center_node = center_node_reg;
+
   M10K #(18) mem_curr_node (
     .clk(clk),
     .write_enable(curr_write_enable),
@@ -52,7 +55,7 @@ module one_column
     if (reset) begin
       state_reg <= INIT;
       counter <= 0;
-      center_node <= init_center_node;
+      center_node_reg <= init_center_node;
     end else begin
       state_reg <= state_next;
     end
@@ -73,7 +76,7 @@ module one_column
   // ---------------- state output ----------------------
   reg [17:0] curr_node, prev_node, top_node, bottom_node;
   wire [17:0] next_node;
-  reg [17:0] init_node_value, init_node_value_term1;
+  reg signed [17:0] init_node_value, init_node_value_term1;
 
   assign curr_node_out = curr_node;
 
@@ -96,7 +99,7 @@ module one_column
     CALC: begin
       top_node <= curr_read_data;
       prev_node <= prev_read_data;
-      center_node <= (counter == (column_size>>1)) ? next_node : center_node;
+      center_node_reg <= (counter == (column_size>>1)) ? next_node : center_node_reg;
     end
     UPDATE: begin
       curr_node <= top_node;
@@ -201,22 +204,22 @@ module node_compute
   assign next_node = undamped_sum - (undamped_sum>>>eta_width);
 endmodule
 
-module rho_update
-#(parameter g_tension_width)
-(
-  input signed [17:0] init_rho,
-  input signed [17:0] center_node,
-  output signed [17:0] rho_value
-);
-  wire signed [17:0] rho_term1, rho_term2;
-  assign rho_term1 = center_node >>> g_tension_width;
-  signed_mult inst2 (
-    .out(rho_term2),
-    .a(rho_term1),
-    .b(rho_term1)
-  );
-  assign rho_value = (18'h0FAE1 < (init_rho + rho_term2)) ? 18'h0FAE1 : (init_rho + rho_term2);
-endmodule
+// module rho_update
+// #(parameter g_tension_width)
+// (
+//   input signed [17:0] init_rho,
+//   input signed [17:0] center_node,
+//   output signed [17:0] rho_value
+// );
+//   wire signed [17:0] rho_term1, rho_term2;
+//   assign rho_term1 = center_node >>> g_tension_width;
+//   signed_mult inst2 (
+//     .out(rho_term2),
+//     .a(rho_term1),
+//     .b(rho_term1)
+//   );
+//   assign rho_value = (18'h0FAE1 < (init_rho + rho_term2)) ? 18'h0FAE1 : (init_rho + rho_term2);
+// endmodule
 
 module signed_mult (out, a, b);
   output  signed  [17:0]  out;
