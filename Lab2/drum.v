@@ -105,9 +105,9 @@ module drum #(
   always @ (posedge clk) begin
     if (reset) begin
       state_reg <= INIT;
-      counter <= 10'd0;
-      init_center_node_value <= init_node;
-      col_incr_value <= init_node;
+      // counter <= 10'd0;
+      // init_center_node_value <= init_node;
+      // col_incr_value <= init_node;
     end else begin
       state_reg <= state_next;
     end
@@ -120,7 +120,12 @@ module drum #(
   end
 
   always@(posedge clk) begin
-    if (state_reg == INIT) begin
+    if (reset) begin
+      counter <= 10'd0;
+      init_center_node_value <= init_node;
+      col_incr_value <= init_node;
+    end
+    else if (state_reg == INIT) begin
       counter <= counter + 1'b1;
       init_center_node_value <= (counter < (number_of_columns>>1))? init_center_node_value + incr_value_row : init_center_node_value - incr_value_row;
       init_center_node_array[counter] <= init_center_node_value; // TODO: sequentiality

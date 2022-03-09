@@ -60,8 +60,8 @@ module one_column
   always@(posedge clk) begin
     if (reset) begin
       state_reg <= INIT;
-      counter <= 0;
-      center_node_reg <= init_center_node;
+      // counter <= 0;
+      // center_node_reg <= init_center_node;
     end else begin
       state_reg <= state_next;
     end
@@ -71,7 +71,10 @@ module one_column
   always@(*) begin
     case (state_reg)
       INIT: state_next = INIT_LOAD;
-      INIT_LOAD: if (counter==(column_size-1)) state_next = BASE_LOAD_1;
+      INIT_LOAD: begin
+        if (counter==(column_size-1)) state_next = BASE_LOAD_1;
+        else state_next = INIT_LOAD;
+      end
       BASE_LOAD_1: state_next = BASE_LOAD_2;
       BASE_LOAD_2: state_next = CALC;
 			// BASE_WAIT: state_next = CALC;
@@ -81,7 +84,11 @@ module one_column
         else state_next = ITERATION_DONE;
       end
 			// WAIT: state_next = CALC;
-      ITERATION_DONE: if (iteration_enable) state_next = CALC;
+      ITERATION_DONE: begin
+        if (iteration_enable) state_next = CALC;
+        else state_next = ITERATION_DONE;
+      end
+      default: state_next = state_reg;
     endcase
   end
 
@@ -93,48 +100,53 @@ module one_column
   assign curr_node_out = curr_node;
 
   always @ (posedge clk) begin
-    case (state_reg)
-    INIT: begin
+    if (reset) begin
       counter <= 0;
-      cycle_time <= 0;
-      init_node_value <= init_node;
-      init_node_value_term1 <= init_node;
-    end
-    INIT_LOAD: begin
-      counter <= counter + 1'b1;
-      init_node_value_term1 = (counter < (column_size>>1))? init_node_value_term1 + incr_value : init_node_value_term1 - incr_value;
-      init_node_value = (init_node_value_term1 < init_center_node) ? init_node_value_term1 : init_center_node;
-    end
-    BASE_LOAD_2: begin
-      counter <= 0;
-      curr_node <= curr_read_data;
-    end
-		// BASE_WAIT: begin
-    //   curr_node <= curr_read_data;
-		// end
-    CALC: begin
-      cycle_time <= cycle_time + 1;
-      top_node <= curr_read_data;
-      prev_node <= prev_read_data;
-      center_node_reg <= (counter == (column_size>>1)) ? next_node : center_node_reg;
-    end
-    UPDATE: begin
-      cycle_time <= cycle_time + 1;
-      curr_node <= top_node;
-      bottom_node <= curr_node;
-      top_node <= curr_read_data;
-      prev_node <= prev_read_data;
-      // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
-      counter <= counter + 1;
-    end
-    // WAIT: cycle_time <= cycle_time + 1;
-    ITERATION_DONE: begin
-      if (iteration_enable) begin
+      center_node_reg <= init_center_node;
+    end else begin
+      case (state_reg)
+      INIT: begin
         counter <= 0;
         cycle_time <= 0;
+        init_node_value <= init_node;
+        init_node_value_term1 <= init_node;
       end
+      INIT_LOAD: begin
+        counter <= counter + 1'b1;
+        init_node_value_term1 = (counter < (column_size>>1))? init_node_value_term1 + incr_value : init_node_value_term1 - incr_value;
+        init_node_value = (init_node_value_term1 < init_center_node) ? init_node_value_term1 : init_center_node;
+      end
+      BASE_LOAD_2: begin
+        counter <= 0;
+        curr_node <= curr_read_data;
+      end
+      // BASE_WAIT: begin
+      //   curr_node <= curr_read_data;
+      // end
+      CALC: begin
+        cycle_time <= cycle_time + 1;
+        top_node <= curr_read_data;
+        prev_node <= prev_read_data;
+        center_node_reg <= (counter == (column_size>>1)) ? next_node : center_node_reg;
+      end
+      UPDATE: begin
+        cycle_time <= cycle_time + 1;
+        curr_node <= top_node;
+        bottom_node <= curr_node;
+        top_node <= curr_read_data;
+        prev_node <= prev_read_data;
+        // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
+        counter <= counter + 1;
+      end
+      // WAIT: cycle_time <= cycle_time + 1;
+      ITERATION_DONE: begin
+        if (iteration_enable) begin
+          counter <= 0;
+          cycle_time <= 0;
+        end
+      end
+      endcase
     end
-    endcase
   end
 
   always@(*) begin
@@ -146,18 +158,43 @@ module one_column
         prev_write_enable = 1'b1;
         prev_write_data = init_node_value; //(counter == (column_size>>1)) ? init_center_node : init_node;
         prev_write_address = counter;
+        // latch prevention
+        curr_read_address = curr_read_address;
+        prev_read_address = prev_read_address;
       end
       BASE_LOAD_1: begin
         curr_read_address = 18'd0;
         curr_write_enable = 1'b0;
         prev_write_enable = 1'b0;
+        // latch prevention
+        prev_read_address = prev_read_address;
+        curr_write_data = curr_write_data;
+        prev_write_data = prev_write_data;
+        curr_write_address = curr_write_address;
+        prev_write_address = prev_write_address;
       end
       BASE_LOAD_2: begin
         // curr_node <= curr_read_data;
         curr_read_address = 18'd1;
         prev_read_address = 18'd0;
+        // latch prevention
+        curr_write_enable = 1'b0;
+        prev_write_enable = 1'b0;
+        curr_write_data = curr_write_data;
+        prev_write_data = prev_write_data;
+        curr_write_address = curr_write_address;
+        prev_write_address = prev_write_address;
       end
       CALC: begin 
+        // latch prevention
+        curr_write_enable = 1'b0;
+        prev_write_enable = 1'b0;
+        curr_write_data = curr_write_data;
+        prev_write_data = prev_write_data;
+        curr_write_address = curr_write_address;
+        prev_write_address = prev_write_address;
+        curr_read_address = curr_read_address;
+        prev_read_address = prev_read_address;
         // TODO: disable M10K write?
         // top_node <= curr_read_data;
         // prev_node <= prev_read_data;
@@ -178,6 +215,17 @@ module one_column
         // bottom_node <= curr_node;
         // TODO: wrap around and overflow handling
         // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
+      end
+      default: begin
+        // latch prevention
+        curr_write_enable = 1'b0;
+        prev_write_enable = 1'b0;
+        curr_write_data = curr_write_data;
+        prev_write_data = prev_write_data;
+        curr_write_address = curr_write_address;
+        prev_write_address = prev_write_address;
+        curr_read_address = curr_read_address;
+        prev_read_address = prev_read_address;
       end
     endcase
   end
