@@ -73,14 +73,14 @@ module one_column
       INIT: state_next = INIT_LOAD;
       INIT_LOAD: if (counter==(column_size-1)) state_next = BASE_LOAD_1;
       BASE_LOAD_1: state_next = BASE_LOAD_2;
-      BASE_LOAD_2: state_next = BASE_WAIT;
-			BASE_WAIT: state_next = CALC;
+      BASE_LOAD_2: state_next = CALC;
+			// BASE_WAIT: state_next = CALC;
       CALC: state_next = UPDATE;
       UPDATE: begin
-        if (counter != (column_size-1)) state_next = WAIT;
+        if (counter != (column_size-1)) state_next = CALC;
         else state_next = ITERATION_DONE;
       end
-			WAIT: state_next = CALC;
+			// WAIT: state_next = CALC;
       ITERATION_DONE: if (iteration_enable) state_next = CALC;
     endcase
   end
@@ -109,9 +109,9 @@ module one_column
       counter <= 0;
       curr_node <= curr_read_data;
     end
-		BASE_WAIT: begin
-      curr_node <= curr_read_data;
-		end
+		// BASE_WAIT: begin
+    //   curr_node <= curr_read_data;
+		// end
     CALC: begin
       cycle_time <= cycle_time + 1;
       top_node <= curr_read_data;
@@ -122,12 +122,12 @@ module one_column
       cycle_time <= cycle_time + 1;
       curr_node <= top_node;
       bottom_node <= curr_node;
-      // top_node <= curr_read_data;
-      // prev_node <= prev_read_data;
+      top_node <= curr_read_data;
+      prev_node <= prev_read_data;
       // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
       counter <= counter + 1;
     end
-    WAIT: cycle_time <= cycle_time + 1;
+    // WAIT: cycle_time <= cycle_time + 1;
     ITERATION_DONE: begin
       if (iteration_enable) begin
         counter <= 0;
@@ -264,7 +264,7 @@ module M10K #(parameter data_width) (
     if (write_enable) begin
       mem[write_address] <= d;
     end
-    buffer <= mem[read_address][data_width-1:0];
-		q <= buffer;
+    q <= mem[read_address][data_width-1:0];
+		// q <= buffer;
   end
 endmodule
