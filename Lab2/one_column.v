@@ -127,6 +127,7 @@ module one_column
       // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
       counter <= counter + 1;
     end
+    WAIT: cycle_time <= cycle_time + 1;
     ITERATION_DONE: begin
       if (iteration_enable) begin
         counter <= 0;
