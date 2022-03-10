@@ -48,6 +48,21 @@ void *h2p_lw_virtual_base;
 // /dev/mem file id
 int fd;
 
+// Converts float to fixed point number
+int to_fixed(float f, int e)
+{
+	double a = f * pow(2, e);
+	int b = (int)(round(a));
+	if (a < 0)
+	{
+		// next three lines turns b into it's 2's complement.
+		b = abs(b);
+		b = ~b;
+		b = b + 1;
+	}
+	return b;
+}
+
 int main(void)
 {
 
@@ -96,22 +111,69 @@ int main(void)
 	test_test = (signed int *)(h2p_virtual_base + TEST_TEST_OFFSET);
 	//============================================
 
+	char input_buffer[64];
+	// printf("Number of columns: ");
+	// scanf("%s", input_buffer);
+	// printf("received number of columns: %s\n", input_buffer);
+	// int number_of_cols_value = atoi(input_buffer);
+	int number_of_cols_value = 100;
 	while (1)
 	{
-		int num;
-		int junk;
-		// input a number
-		// reset: 2; clk: 1
-		junk = scanf("%d", &num);
-		*(number_of_rows) = num;
-		// send to PIOs
-		junk = scanf("%d", &num);
-		*(test_test) = num;
-		junk = scanf("%d", &num);
-		*(test_test) = num;
+		printf("Want to reset(y/n): ");
+		scanf("%s", input_buffer);
+		printf("received value: %s\n", input_buffer);
+		if (strcmp(input_buffer, "y") == 0)
+		{
+			// number of rows
+			printf("number of rows: ");
+			scanf("%s", input_buffer);
+			printf("received row value: %s\n", input_buffer);
+			int number_of_rows_value = atoi(input_buffer);
+			// *number_of_rows = number_of_rows_value;
+			// node intialization
+			printf("center node initialization value: ");
+			scanf("%s", input_buffer);
+			float init_center_node_value = strtof(input_buffer, NULL);
+			printf("received center node value: %f\n", init_center_node_value);
+			// *init_node = to_fixed(0.0, 17);
+			// *init_center_node = to_fixed(init_center_node_value, 17);
+			float incr_value_row_value = init_center_node_value / (int)(number_of_cols_value / 2);
+			float incr_value_col_value = incr_value_row_value / (int)(number_of_rows_value / 2);
+			printf("incr row value: %f, %x\n", incr_value_row_value, to_fixed(incr_value_row_value, 17));
+			printf("incr col value: %f, %x\n", incr_value_col_value, to_fixed(incr_value_col_value, 17));
+			// *incr_value_row = to_fixed(incr_value_row_value, 17);
+			// *incr_value_col = to_fixed(incr_value_col_value, 17);
+			// init rho value
+			printf("rho initialization value: ");
+			scanf("%s", input_buffer);
+			float init_rho_value = 1 / strtof(input_buffer, NULL);
+			printf("received init rho value: %f, %x\n", init_rho_value, to_fixed(init_rho_value, 17));
+			// *init_rho = to_fixed(init_rho_value, 17);
+			// reset
+			// *(test_test) = 1;
+			// *(test_test) = 0;
 
-		// receive back and print
-		printf("pio in=%d\n\r", *(test_test));
+			// input to PIO
+			*number_of_rows = number_of_rows_value;
+			*init_node = to_fixed(0.0, 17);
+			*init_center_node = to_fixed(init_center_node_value, 17);
+			*incr_value_row = to_fixed(incr_value_row_value, 17);
+			*incr_value_col = to_fixed(incr_value_col_value, 17);
+			*init_rho = to_fixed(init_rho_value, 17);
+			*(test_test) = 1;
+			*(test_test) = 0;
+		}
+
+		// junk = scanf("%d", &num);
+		// *(number_of_rows) = num;
+		// // send to PIOs
+		// junk = scanf("%d", &num);
+		// *(test_test) = num;
+		// junk = scanf("%d", &num);
+		// *(test_test) = num;
+
+		// // receive back and print
+		// printf("pio in=%d\n\r", *(test_test));
 
 	} // end while(1)
 } // end main
