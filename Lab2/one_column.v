@@ -15,15 +15,15 @@ module one_column
   output signed [17:0] curr_node_out,
   output reg [12:0] cycle_time
 );
-
+  // reg and wire init
   reg signed [17:0] center_node_reg;
   reg [17:0] curr_write_data, prev_write_data;
   reg [8:0] curr_write_address, curr_read_address, prev_write_address, prev_read_address;
   reg curr_write_enable, prev_write_enable;
   wire [17:0] curr_read_data, prev_read_data;
   assign center_node = center_node_reg;
-  // reg [12:0] cycle_time;
-
+  
+  // Declare M10K memory block for current node
   M10K #(18) mem_curr_node (
     .clk(clk),
     .write_enable(curr_write_enable),
@@ -32,7 +32,7 @@ module one_column
     .d(curr_write_data),
     .q(curr_read_data)
   );
-
+  // Declare M10K memory block for previous node
   M10K #(18) mem_prev_node (
     .clk(clk),
     .write_enable(prev_write_enable),
@@ -41,7 +41,8 @@ module one_column
     .d(prev_write_data),
     .q(prev_read_data)
   );
-
+  
+  // registers used in state machine
   reg [3:0] state_reg, state_next;
   reg [9:0] counter;
 
@@ -50,18 +51,16 @@ module one_column
   localparam INIT_LOAD = 4'd1;
   localparam BASE_LOAD_1 = 4'd2;
   localparam BASE_LOAD_2 = 4'd3;
-	localparam BASE_WAIT = 4'd7;
+  localparam BASE_WAIT = 4'd7;
   localparam CALC = 4'd4;
   localparam UPDATE = 4'd5;
-	localparam WAIT = 4'd8;
+  localparam WAIT = 4'd8;
   localparam ITERATION_DONE = 4'd6;
 
   // ------------- next state update -------------------
   always@(posedge clk) begin
     if (reset) begin
       state_reg <= INIT;
-      // counter <= 0;
-      // center_node_reg <= init_center_node;
     end else begin
       state_reg <= state_next;
     end
@@ -72,20 +71,18 @@ module one_column
     case (state_reg)
       INIT: state_next = INIT_LOAD;
       INIT_LOAD: begin
-        if (counter==(column_size-1)) state_next = BASE_LOAD_1;
-        else state_next = INIT_LOAD;
+        if (counter==(column_size-1)) state_next = BASE_LOAD_1; //Move to next state if reached top-row
+        else state_next = INIT_LOAD; //Remain in INIT_LOAD
       end
       BASE_LOAD_1: state_next = BASE_LOAD_2;
       BASE_LOAD_2: state_next = CALC;
-			// BASE_WAIT: state_next = CALC;
       CALC: state_next = UPDATE;
       UPDATE: begin
-        if (counter != (column_size-1)) state_next = CALC;
+        if (counter != (column_size-1)) state_next = CALC; //Move to next state if reached top-row
         else state_next = ITERATION_DONE;
       end
-			// WAIT: state_next = CALC;
       ITERATION_DONE: begin
-        if (iteration_enable) state_next = CALC;
+        if (iteration_enable) state_next = CALC;//Move to CALC if received enable from HPS
         else state_next = ITERATION_DONE;
       end
       default: state_next = state_reg;
@@ -120,9 +117,6 @@ module one_column
         counter <= 0;
         curr_node <= curr_read_data;
       end
-      // BASE_WAIT: begin
-      //   curr_node <= curr_read_data;
-      // end
       CALC: begin
         cycle_time <= cycle_time + 1;
         top_node <= curr_read_data;
@@ -195,11 +189,6 @@ module one_column
         prev_write_address = prev_write_address;
         curr_read_address = curr_read_address;
         prev_read_address = prev_read_address;
-        // TODO: disable M10K write?
-        // top_node <= curr_read_data;
-        // prev_node <= prev_read_data;
-        // TODO: center node update
-        // if (counter == (column_size>>1)) center_node <= next_node;
       end
       UPDATE: begin
         curr_write_enable = 1'b1;
@@ -230,8 +219,6 @@ module one_column
     endcase
   end
 
-  // TODO: edge handling
-  // wire signed [17:0] rho;
   node_compute #(eta_width) compute_inst 
   (
     .curr_node(curr_node),
@@ -270,23 +257,6 @@ module node_compute
   assign next_node = undamped_sum - (undamped_sum>>>eta_width);
 endmodule
 
-// module rho_update
-// #(parameter g_tension_width)
-// (
-//   input signed [17:0] init_rho,
-//   input signed [17:0] center_node,
-//   output signed [17:0] rho_value
-// );
-//   wire signed [17:0] rho_term1, rho_term2;
-//   assign rho_term1 = center_node >>> g_tension_width;
-//   signed_mult inst2 (
-//     .out(rho_term2),
-//     .a(rho_term1),
-//     .b(rho_term1)
-//   );
-//   assign rho_value = (18'h0FAE1 < (init_rho + rho_term2)) ? 18'h0FAE1 : (init_rho + rho_term2);
-// endmodule
-
 module signed_mult (out, a, b);
   output  signed  [17:0]  out;
   input   signed  [17:0]  a;
@@ -313,6 +283,5 @@ module M10K #(parameter data_width) (
       mem[write_address] <= d;
     end
     q <= mem[read_address][data_width-1:0];
-		// q <= buffer;
   end
 endmodule
