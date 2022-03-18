@@ -374,27 +374,12 @@ reg [7:0] fifo_space;
 // debug check of space
 assign LEDR = fifo_space;
 
-wire			[15: 0]	hex3_hex0;
-//wire			[15: 0]	hex5_hex4;
-
-// assign HEX0 = ~hex3_hex0[ 6: 0]; // hex3_hex0[ 6: 0]; 
-// assign HEX1 = ~hex3_hex0[14: 8];
-// assign HEX2 = ~hex3_hex0[22:16];
-// assign HEX3 = ~hex3_hex0[30:24];
-//assign HEX4 = 7'b1111111;
-//assign HEX5 = 7'b1111111;
-//assign HEX3 = 7'b1111111;
-// assign HEX2 = 7'b1111111;
-// assign HEX1 = 7'b1111111;
-// assign HEX0 = 7'b1111111;
 HexDigit Digit0(HEX0, cycle_time_out[3:0]);
 HexDigit Digit1(HEX1, cycle_time_out[7:4]);
 HexDigit Digit2(HEX2, cycle_time_out[11:8]);
 HexDigit Digit3(HEX3, fifo_space[3:0]);
 HexDigit Digit4(HEX4, fifo_space[7:4]);
-//HexDigit Digit5(HEX5, cycle_time_out[11:8]);
 HexDigit Digit5(HEX5, test_test[3:0]);
-// HexDigit Digit3(HEX3, hex3_hex0[15:12]);
 
 //=======================================================
 // Bus controller for AVALON bus-master
@@ -510,19 +495,6 @@ end
 //=======================================================
 //  Drum Instantiation
 //=======================================================
-//drum #(13, 5, 31) DUT (
-//  .clk(CLOCK_50),
-//  .reset(test_test[0]),
-//  .number_of_rows(10'd31),
-//  .init_node(18'h00000),
-//  .incr_value_col(18'h00091), //31x31--(0.25/15/15)=00091 02AAA for 7 nodes, 01249 for 15 nodes, 00888 for 31 nodes
-//  .incr_value_row(18'h00888), // 02AAA for 7 nodes, 01249 for 15 nodes, 00888 for 31 nodes
-//  .init_center_node(18'h08000),
-//  .init_rho(18'h00800), 
-//  .iteration_enable(iteration_enable),
-//  .center_node_out(center_node_out),
-//	.cycle_time_out(cycle_time_out)
-//);
 drum #(13, 5, 100) DUT (
   .clk(CLOCK_50),
   .reset(test_test[0]),

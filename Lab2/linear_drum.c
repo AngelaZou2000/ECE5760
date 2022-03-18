@@ -64,8 +64,8 @@ volatile unsigned int *audio_right_data_ptr = NULL; // 12bytes
 
 // drum size paramenters
 // drum will FAIL if size is too big
-#define drum_size 30
-#define drum_middle 15
+#define drum_size 40
+#define drum_middle 5
 int copy_size = drum_size * drum_size * 4;
 
 // fixed pt macros suitable for 32-bit sound
@@ -96,6 +96,10 @@ fix28 new_drum[drum_size][drum_size];
 fix28 new_drum_temp;
 
 clock_t note_time;
+clock_t compute_time;
+clock_t compute_time_2;
+struct timeval tv1;
+struct timeval tv2;
 
 // the light weight buss base
 void *h2p_lw_virtual_base;
@@ -209,6 +213,12 @@ int main(void)
     // load the FIFO until it is full
     while (((*audio_fifo_data_ptr >> 24) & 0xff) > 1)
     {
+      // compute_time = clock();
+      // printf("compute_time: %ld\n", compute_time);
+
+      gettimeofday(&tv1, NULL);
+      unsigned long time1 = 1000000 * tv1.tv_sec + tv1.tv_usec;
+
       // do drum time sample
       // equation 2.18
       // from http://people.ece.cornell.edu/land/courses/ece5760/LABS/s2018/WaveFDsoln.pdf
@@ -233,6 +243,13 @@ int main(void)
       // share the audio sample time with video process
       // audio_time++ ;
       //*shared_ptr = audio_time/48000 ;
+      // compute_time_2 = clock();
+      // printf("compute_time_2: %ld\n", compute_time_2);
+
+      gettimeofday(&tv2, NULL);
+      unsigned long time2 = 1000000 * tv2.tv_sec + tv2.tv_usec;
+      printf("time: %ld\n", time2 - time1);
+
     } // end while (((*audio
 
     if (clock() - note_time > 3000000)

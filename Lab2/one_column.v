@@ -23,7 +23,7 @@ module one_column
   wire [17:0] curr_read_data, prev_read_data;
   assign center_node = center_node_reg;
   
-  // Declare M10K memory block for current node
+  // declare M10K memory block for current node
   M10K #(18) mem_curr_node (
     .clk(clk),
     .write_enable(curr_write_enable),
@@ -32,7 +32,7 @@ module one_column
     .d(curr_write_data),
     .q(curr_read_data)
   );
-  // Declare M10K memory block for previous node
+  // declare M10K memory block for previous node
   M10K #(18) mem_prev_node (
     .clk(clk),
     .write_enable(prev_write_enable),
@@ -71,18 +71,18 @@ module one_column
     case (state_reg)
       INIT: state_next = INIT_LOAD;
       INIT_LOAD: begin
-        if (counter==(column_size-1)) state_next = BASE_LOAD_1; //Move to next state if reached top-row
-        else state_next = INIT_LOAD; //Remain in INIT_LOAD
+        if (counter==(column_size-1)) state_next = BASE_LOAD_1; // move to next state if reached top node
+        else state_next = INIT_LOAD;
       end
       BASE_LOAD_1: state_next = BASE_LOAD_2;
       BASE_LOAD_2: state_next = CALC;
       CALC: state_next = UPDATE;
       UPDATE: begin
-        if (counter != (column_size-1)) state_next = CALC; //Move to next state if reached top-row
-        else state_next = ITERATION_DONE;
+        if (counter != (column_size-1)) state_next = CALC; // keep calculating next node
+        else state_next = ITERATION_DONE; // move to ITERATION DONE state if reached top node
       end
       ITERATION_DONE: begin
-        if (iteration_enable) state_next = CALC;//Move to CALC if received enable from HPS
+        if (iteration_enable) state_next = CALC;// move to CALC if received enable from HPS
         else state_next = ITERATION_DONE;
       end
       default: state_next = state_reg;
@@ -98,8 +98,8 @@ module one_column
 
   always @ (posedge clk) begin
     if (reset) begin
-      counter <= 0;
-      center_node_reg <= init_center_node;
+      counter <= 0; // reset initalization counter
+      center_node_reg <= init_center_node; // output center node value
     end else begin
       case (state_reg)
       INIT: begin
@@ -109,30 +109,39 @@ module one_column
         init_node_value_term1 <= init_node;
       end
       INIT_LOAD: begin
+        // keep incresing intialization counter
         counter <= counter + 1'b1;
+        // increase init value if at the first half, decrease at the second half
         init_node_value_term1 = (counter < (column_size>>1))? init_node_value_term1 + incr_value : init_node_value_term1 - incr_value;
+        // cutoff if init value is higher than the center node value
         init_node_value = (init_node_value_term1 < init_center_node) ? init_node_value_term1 : init_center_node;
       end
       BASE_LOAD_2: begin
         counter <= 0;
+        // write the current M10K array output to curr_node
         curr_node <= curr_read_data;
       end
       CALC: begin
         cycle_time <= cycle_time + 1;
+        // write the current M10K array output to top_node
         top_node <= curr_read_data;
+        // write the previous M10K array output to prev_node
         prev_node <= prev_read_data;
+        // if the center node gets updated, modify the column module output
         center_node_reg <= (counter == (column_size>>1)) ? next_node : center_node_reg;
       end
       UPDATE: begin
         cycle_time <= cycle_time + 1;
+        // next cycle, top_node becomes curr_node 
         curr_node <= top_node;
+        // next cycle, curr_node becomes bottom_node 
         bottom_node <= curr_node;
+        // write the current M10K array output to top_node
         top_node <= curr_read_data;
+        // write the previous M10K array output to prev_node
         prev_node <= prev_read_data;
-        // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
         counter <= counter + 1;
       end
-      // WAIT: cycle_time <= cycle_time + 1;
       ITERATION_DONE: begin
         if (iteration_enable) begin
           counter <= 0;
@@ -146,18 +155,21 @@ module one_column
   always@(*) begin
     case(state_reg)
       INIT_LOAD: begin
+        // each cycle write the initialization value calculated in the curr and prev M10K array
         curr_write_enable = 1'b1;
-        curr_write_data = init_node_value; //(counter == (column_size>>1)) ? init_center_node : init_node;
+        curr_write_data = init_node_value;
         curr_write_address = counter;
         prev_write_enable = 1'b1;
-        prev_write_data = init_node_value; //(counter == (column_size>>1)) ? init_center_node : init_node;
+        prev_write_data = init_node_value;
         prev_write_address = counter;
         // latch prevention
         curr_read_address = curr_read_address;
         prev_read_address = prev_read_address;
       end
       BASE_LOAD_1: begin
+        // read the node 0 current value
         curr_read_address = 18'd0;
+        // disable write enable signals
         curr_write_enable = 1'b0;
         prev_write_enable = 1'b0;
         // latch prevention
@@ -168,8 +180,9 @@ module one_column
         prev_write_address = prev_write_address;
       end
       BASE_LOAD_2: begin
-        // curr_node <= curr_read_data;
+        // read node 1 current value
         curr_read_address = 18'd1;
+        // read node 0 previous value
         prev_read_address = 18'd0;
         // latch prevention
         curr_write_enable = 1'b0;
@@ -191,19 +204,22 @@ module one_column
         prev_read_address = prev_read_address;
       end
       UPDATE: begin
+        // enable write signals
         curr_write_enable = 1'b1;
         prev_write_enable = 1'b1;
+        // write the calculated value into current node
         curr_write_address = counter;
         curr_write_data = next_node;
+        // write the original current value into previous node
         prev_write_address = counter;
         prev_write_data = curr_node;
+        // read the top node value for next iteration -- if reach the bottom node
+        // read the node 0 / node 1 value from the current array
         curr_read_address = (counter==(column_size-2)) ? 0 :
                              ((counter==(column_size-1)) ? 1 : counter + 2);
+        // read the previous node value for next iteration -- if reach the bottom node
+        // read the node 0 value from the previous array
         prev_read_address = (counter==(column_size-1)) ? 0 : counter + 1;
-        // curr_node <= top_node;
-        // bottom_node <= curr_node;
-        // TODO: wrap around and overflow handling
-        // counter <= (counter==(column_size-1)) ? 0 : counter + 1;
       end
       default: begin
         // latch prevention
@@ -219,6 +235,7 @@ module one_column
     endcase
   end
 
+  // single node calculation module
   node_compute #(eta_width) compute_inst 
   (
     .curr_node(curr_node),
@@ -227,7 +244,7 @@ module one_column
     .top_node((counter==(column_size-1))?18'd0:top_node),
     .bottom_node((counter==0)?18'd0:bottom_node),
     .prev_node(prev_node),
-    .rho(init_rho), //rho),
+    .rho(init_rho),
     .next_node(next_node)
   );
 
@@ -245,13 +262,17 @@ module node_compute
   input signed [17:0] rho,
   output signed [17:0] next_node
 );
+  // declare wire for intermediate terms 
   wire signed [17:0] node_sum, current_term, undamped_sum, damped_prev_node;
+  // summation of current node, left node, right node, top node, and bottom node
   assign node_sum = left_node+right_node+top_node+bottom_node-(curr_node<<2);
+  // nonlinear rho effect
   signed_mult inst1 (
     .out(current_term),
     .a(node_sum),
     .b(rho)
   );
+  // damp the previous node
   assign damped_prev_node = prev_node - (prev_node>>>eta_width); 
   assign undamped_sum = current_term + (curr_node<<1) - damped_prev_node;
   assign next_node = undamped_sum - (undamped_sum>>>eta_width);
@@ -274,7 +295,7 @@ module M10K #(parameter data_width) (
   input [8:0] write_address,
   input [8:0] read_address,
   input [data_width-1:0] d,
-  output reg [data_width-1:0] q
+  output reg [data_width-1:0] 
 );
   reg [19:0] mem [511:0];
   reg [data_width-1:0] buffer;

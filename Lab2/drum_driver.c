@@ -21,7 +21,7 @@
 #define FPGA_AXI_SPAN 0x00001000
 // Main axi bus base
 void *h2p_virtual_base;
-// Initialize addresses for parameters 
+// Initialize addresses for parameters
 volatile signed int *incr_value_col = NULL;
 volatile signed int *incr_value_row = NULL;
 volatile signed int *init_center_node = NULL;
@@ -49,10 +49,12 @@ void *h2p_lw_virtual_base;
 int fd;
 
 // Helper function - converts float to fixed point number
-int to_fixed(float f, int e) {
+int to_fixed(float f, int e)
+{
 	double a = f * pow(2, e);
 	int b = (int)(round(a));
-	if (a < 0) {
+	if (a < 0)
+	{
 		// Next three lines turns b into it's 2's complement.
 		b = abs(b);
 		b = ~b;
@@ -62,26 +64,30 @@ int to_fixed(float f, int e) {
 }
 
 ////////////////////////
-// Main function 
+// Main function
 ////////////////////////
-int main(void) {
-	
-    // === get FPGA addresses ==================
+int main(void)
+{
+
+	// === get FPGA addresses ==================
 	// Open /dev/mem
-	if ((fd = open("/dev/mem", (O_RDWR | O_SYNC))) == -1) {
+	if ((fd = open("/dev/mem", (O_RDWR | O_SYNC))) == -1)
+	{
 		printf("ERROR: could not open \"/dev/mem\"...\n");
 		return (1);
 	}
 	// Get virtual addr that maps to physical for light weight AXI bus
 	h2p_lw_virtual_base = mmap(NULL, FPGA_LW_SPAN, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, FPGA_LW_BASE);
-	if (h2p_lw_virtual_base == MAP_FAILED) {
+	if (h2p_lw_virtual_base == MAP_FAILED)
+	{
 		printf("ERROR: mmap1() failed...\n");
 		close(fd);
 		return (1);
 	}
 	// Get virtual address for AXI bus addr
 	h2p_virtual_base = mmap(NULL, FPGA_AXI_SPAN, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, FPGA_AXI_BASE);
-	if (h2p_virtual_base == MAP_FAILED) {
+	if (h2p_virtual_base == MAP_FAILED)
+	{
 		printf("ERROR: mmap3() failed...\n");
 		close(fd);
 		return (1);
@@ -96,17 +102,19 @@ int main(void) {
 	test_test = (signed int *)(h2p_virtual_base + TEST_TEST_OFFSET);
 	// ============================================
 
-    // Input buffer
+	// Input buffer
 	char input_buffer[64];
-    // Number of columns (matches value set in Verilog code)
+	// Number of columns (matches value set in Verilog code)
 	int number_of_cols_value = 100;
-	while (1) {
-        // Asks user whether they want to reset the drum (reset parameters)
+	while (1)
+	{
+		// Asks user whether they want to reset the drum (reset parameters)
 		printf("Want to reset(y/n): ");
 		scanf("%s", input_buffer);
 		printf("received value: %s\n", input_buffer);
-        // If yes...
-		if (strcmp(input_buffer, "y") == 0) {
+		// If yes...
+		if (strcmp(input_buffer, "y") == 0)
+		{
 			// Number of rows
 			printf("number of rows: ");
 			scanf("%s", input_buffer);
@@ -117,7 +125,7 @@ int main(void) {
 			scanf("%s", input_buffer);
 			float init_center_node_value = strtof(input_buffer, NULL);
 			printf("received center node value: %f\n", init_center_node_value);
-            // Prints incremenetal values for rows/columns for pyramid initialization of drum
+			// Prints incremenetal values for rows/columns for pyramid initialization of drum
 			float incr_value_row_value = init_center_node_value / (int)(number_of_cols_value / 2);
 			float incr_value_col_value = incr_value_row_value / (int)(number_of_rows_value / 2);
 			printf("incr row value: %f, %x\n", incr_value_row_value, to_fixed(incr_value_row_value, 17));
@@ -128,7 +136,7 @@ int main(void) {
 			float init_rho_value = 1 / strtof(input_buffer, NULL);
 			printf("received init rho value: %f, %x\n", init_rho_value, to_fixed(init_rho_value, 17));
 
-			// Convert values to fixed point and input to PIO ports 
+			// Convert values to fixed point and input to PIO ports
 			*number_of_rows = number_of_rows_value;
 			*init_node = to_fixed(0.0, 17);
 			*init_center_node = to_fixed(init_center_node_value, 17);
