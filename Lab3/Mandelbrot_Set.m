@@ -7,8 +7,8 @@
 % disp("y_pixel: " + y_pixel_num + " | y_img: " + y_img);
 
 %%%%%%%% Option to enter in real/img nums %%%%%%%%%%%%
-x_real = 1;
-y_img = 1;
+x_real = 0.5;
+y_img = 0.5;
 x_pixel_num = interp1([-2,1],[0,639],x_real); 
 y_pixel_num = interp1([-1,1],[0,479],y_img);
 disp("x_real: " + x_real + " | x_pixel_num: " + x_pixel_num);
@@ -23,6 +23,7 @@ while (abs(z)<=2 && n<termination)
     z = z^2 + c;
     n = n + 1;
 end
+disp("n: " + n + " | In set" );  
 if (abs(z)<=2) 
     disp("z: " + z + " | In set" );   
 else
