@@ -5,7 +5,6 @@ module iterator(
   input signed [26:0] ci,
   output [10:0] counter
 );
-// signed declaration
   reg signed [26:0] curr_zr, curr_zi, curr_zr_pow2, curr_zi_pow2;
   wire signed [26:0] next_zr, next_zi, next_zr_pow2, next_zi_pow2, zizr;
   reg [10:0] local_counter;
@@ -15,7 +14,7 @@ module iterator(
   localparam MAX_ITERATIONS = 100;
   localparam signed TWO = 27'h1000000;
   localparam signed FOUR = 27'h2000000;
-  localparam signed NEGTWO = 27'h7000000; // TODO
+  localparam signed NEGTWO = 27'h7000000;
 
   always@(posedge clk) begin
     if (reset) begin
@@ -26,17 +25,17 @@ module iterator(
       local_counter <= 11'd0;
       test <= 0;
     end else begin
-      if (local_counter > MAX_ITERATIONS) begin
+      if (local_counter >= MAX_ITERATIONS) begin
         local_counter <= local_counter;
-        test <= 26'd1;
+        // test <= 26'd1;
       end else if (($signed(curr_zr)>=$signed(TWO))|($signed(curr_zi)>=$signed(TWO))|
                   ($signed(curr_zr)<=$signed(NEGTWO))|($signed(curr_zi)<=$signed(NEGTWO))|
                   ($signed(curr_zr_pow2+curr_zi_pow2)>=$signed(FOUR))) begin
-        if (($signed(curr_zr)>=$signed(TWO))) test <= 26'd2;
-        else if (($signed(curr_zi)>=$signed(TWO))) test <= 26'd3;
-        else if (($signed(curr_zr)<=$signed(NEGTWO))) test <= 26'd4;
-        else if ((curr_zi<=NEGTWO)) test <= 26'd5;
-        else if (((curr_zr_pow2+curr_zi_pow2)>=FOUR)) test <= 26'd6;
+        // if (($signed(curr_zr)>=$signed(TWO))) test <= 26'd2;
+        // else if (($signed(curr_zi)>=$signed(TWO))) test <= 26'd3;
+        // else if (($signed(curr_zr)<=$signed(NEGTWO))) test <= 26'd4;
+        // else if ((curr_zi<=NEGTWO)) test <= 26'd5;
+        // else if (((curr_zr_pow2+curr_zi_pow2)>=FOUR)) test <= 26'd6;
         local_counter <= local_counter;
       end else begin
         local_counter <= local_counter + 11'd1;
