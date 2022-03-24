@@ -1,15 +1,18 @@
+`default_nettype wire
 module iterator(
-  input clk,
-  input reset,
+  input               clk,
+  input               reset,
   input signed [26:0] cr,
   input signed [26:0] ci,
-  output [10:0] counter
+  output [10:0]       counter,
+  output              done
 );
   reg signed [26:0] curr_zr, curr_zi, curr_zr_pow2, curr_zi_pow2;
   wire signed [26:0] next_zr, next_zi, next_zr_pow2, next_zi_pow2, zizr;
   reg [10:0] local_counter;
-  reg [26:0] test;
+  reg done_signal;
   assign counter = local_counter;
+  assign done = done_signal;
 
   localparam MAX_ITERATIONS = 100;
   localparam signed TWO = 27'h1000000;
@@ -23,20 +26,16 @@ module iterator(
       curr_zi <= 27'd0;
       curr_zi_pow2 <= 27'd0;
       local_counter <= 11'd0;
-      test <= 0;
+      done_signal <= 1'b0;
     end else begin
       if (local_counter >= MAX_ITERATIONS) begin
         local_counter <= local_counter;
-        // test <= 26'd1;
+        done_signal <= 1'b1;
       end else if (($signed(curr_zr)>=$signed(TWO))|($signed(curr_zi)>=$signed(TWO))|
                   ($signed(curr_zr)<=$signed(NEGTWO))|($signed(curr_zi)<=$signed(NEGTWO))|
                   ($signed(curr_zr_pow2+curr_zi_pow2)>=$signed(FOUR))) begin
-        // if (($signed(curr_zr)>=$signed(TWO))) test <= 26'd2;
-        // else if (($signed(curr_zi)>=$signed(TWO))) test <= 26'd3;
-        // else if (($signed(curr_zr)<=$signed(NEGTWO))) test <= 26'd4;
-        // else if ((curr_zi<=NEGTWO)) test <= 26'd5;
-        // else if (((curr_zr_pow2+curr_zi_pow2)>=FOUR)) test <= 26'd6;
         local_counter <= local_counter;
+        done_signal <= 1'b1;
       end else begin
         local_counter <= local_counter + 11'd1;
         curr_zr <= next_zr;

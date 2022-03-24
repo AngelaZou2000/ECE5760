@@ -1,28 +1,3 @@
-termination = 100;
-x = -2:0.125:2;
-y = -2:0.125:2;
-x_index = 1:length(x) ;
-y_index = 1:length(y) ;
-img = zeros(length(y),length(x));
-
-N_total = 0;
-for j=y_index
-    for k=x_index
-        z = 0;
-        n = 0;
-        c = x(k)+ y(j)*i ;%complex number
-        while (abs(z)<2 && n<termination)
-            z = z^2 + c;
-            n = n + 1;
-            N_total = N_total + 1;
-        end
-        disp(n + " " + N_total + " " + x(k) + " " + y(j));
-%         img(j,k) = log2(n);
-    end
-end
-
-N_total
-
 %%%%%%%% Option to enter in x/y pixels %%%%%%%%%%%%%%%
 % x_pixel_num = 50;
 % y_pixel_num = 50;
@@ -91,23 +66,20 @@ N_total
 % calc(-0.2, -0.2);
 % calc(-0.1, -0.1);
 % 
-
-calc(0.000001, -1);
-calc(0, -1);
-function calc(x_real, y_img)
-%     x_real = 0.5;
-%     y_img = 0.5;
-    termination = 1000;
-    n = 0;
-    c = x_real + i*y_img;
-    z = 0;
-    while (abs(z)<=2 && n<termination)
-        z = z^2 + c;
-        n = n + 1;
-    end
-    disp("x: " + x_real + "+" + y_img + "i -----" + " n: " + n ); 
-end
-
+% function calc(x_real, y_img)
+% %     x_real = 0.5;
+% %     y_img = 0.5;
+%     termination = 1000;
+%     n = 0;
+%     c = x_real + i*y_img;
+%     z = 0;
+%     while (abs(z)<=2 && n<termination)
+%         z = z^2 + c;
+%         n = n + 1;
+%     end
+%     disp("x: " + x_real + "+" + y_img + "i -----" + " n: " + n ); 
+% end
+% 
 
 
 
@@ -119,15 +91,15 @@ end
 % figure(1); clf;
 
 % termination = 100;
-% x = -1:0.1:1;
-% y = -1:0.1:1;
+% x = linspace(-2,1,640);
+% y = linspace(-1,1,480);
 % x_index = 1:length(x) ;
 % y_index = 1:length(y) ;
 % img = zeros(length(y),length(x));
-% 
+
 % N_total = 0;
-% for j=y_index
-%     for k=x_index
+% for k=x_index
+%     for j=y_index
 %         z = 0;
 %         n = 0;
 %         c = x(k)+ y(j)*i ;%complex number
@@ -136,11 +108,11 @@ end
 %             n = n + 1;
 %             N_total = N_total + 1;
 %         end
-%         disp(n + " " + N_total + " " + x(k) + " " + y(j));
-% %         img(j,k) = log2(n);
+%         n
+%         img(j,k) = log2(n);
 %     end
 % end
-% 
+
 % N_total
 % imagesc(img)
 % colormap(jet)

@@ -1,18 +1,22 @@
 `timescale 1ns/1ns
 
-module iterator_tb();
+module iterator_loop_tb();
   
   reg clk, reset;
   
   wire signed [10:0] counter;
   wire done;
-  iterator DUT(
-  .clk(clk),
-  .reset(reset),
-  .cr(27'h800000),
-  .ci(27'h800000),
-  .counter(counter),
-  .done(done)
+  iterator_loop DUT(
+  .clk      (clk),
+  .reset    (reset),
+  .init_x   (27'h0),
+  .init_y   (27'h0),
+  .x_incr   (27'h400000),
+  .y_incr   (27'h400000),
+  .x_limit  (27'h1000000),
+  .y_limit  (27'h1000000),
+  .output_counter(counter),
+  .done       (done)
   );
   
   //Initialize clocks and index
