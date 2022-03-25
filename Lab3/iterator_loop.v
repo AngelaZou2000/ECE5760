@@ -12,7 +12,7 @@ module iterator_loop (
   input signed [26:0] y_limit,
   output [10:0] output_counter,
   output wire done
-  );
+);
   
   reg signed [26:0] current_x, current_y;
   // wire [10:0] output_counter;
@@ -36,10 +36,10 @@ module iterator_loop (
         node_reset    <= 1'd1;
         total_counter <= total_counter + {{21{1'b0}}, output_counter};
         current_x     <= current_x + x_incr;
-        if ($signed(current_x)>=$signed(x_limit)) begin
+        if ($signed(current_x)>$signed(x_limit)) begin
           current_y <= current_y + y_incr;
           current_x <= init_x;
-          if ($signed(current_y)>=$signed(y_limit)) begin
+          if ($signed(current_y)>$signed(y_limit)) begin
             iterator_done <= 1'd1;
           end
         end
