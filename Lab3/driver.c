@@ -22,13 +22,15 @@
 // Main axi bus base
 void *h2p_virtual_base;
 // Initialize addresses for parameters
-volatile signed int *incr_value_col = NULL;
-volatile signed int *incr_value_row = NULL;
-volatile signed int *init_center_node = NULL;
-volatile signed int *init_node = NULL;
-volatile signed int *init_rho = NULL;
-volatile signed int *number_of_rows = NULL;
-volatile signed int *test_test = NULL;
+volatile signed int *h2p_init_x = NULL;
+volatile signed int *h2p_init_y = NULL;
+volatile signed int *h2p_x_partition_incr = NULL;
+volatile signed int *h2p_y_partition_incr = NULL;
+volatile signed int *h2p_x_incr = NULL;
+volatile signed int *h2p_y_incr = NULL;
+volatile signed int *h2p_x_limit = NULL;
+volatile signed int *h2p_y_limit = NULL;
+volatile signed int *h2p_external_reset = NULL;
 
 // LW bus; PIO
 #define FPGA_LW_BASE 0xff200000
@@ -37,13 +39,15 @@ volatile signed int *test_test = NULL;
 void *h2p_lw_virtual_base;
 
 // Read offsets for each parameter (matches QSys configuration)
-#define INCR_VALUE_COL_OFFSET 0x10
-#define INCR_VALUE_ROW_OFFSET 0x20
-#define INIT_CENTER_NODE_OFFSET 0x30
-#define INIT_NODE_OFFSET 0x00
-#define INIT_RHO_OFFSET 0x50
-#define NUMBER_OF_ROWS_OFFSET 0x40
-#define TEST_TEST_OFFSET 0x60
+#define INIT_X_OFFSET 0x00
+#define INIT_Y_OFFSET 0x10
+#define X_PARTITION_INCR_OFFSET 0x20
+#define Y_PARTITION_INCR_OFFSET 0x30
+#define X_INCR_OFFSET 0x40
+#define Y_INCR_OFFSET 0x50
+#define X_LIMIT_OFFSET 0x60
+#define Y_LIMIT_OFFSET 0x70
+#define EXTERNAL_RESET_OFFSET 0x80
 
 // /dev/mem file id
 int fd;
@@ -62,6 +66,9 @@ int to_fixed(float f, int e)
   }
   return b;
 }
+
+#define ROW_SIZE 640
+#define COL_SIZE 480
 
 ////////////////////////
 // Main function
@@ -93,19 +100,36 @@ int main(void)
     return (1);
   }
   // Get the addresses for parameter PIO ports (main axi bus base + the offsets initialized above)
-  incr_value_col = (signed int *)(h2p_virtual_base + INCR_VALUE_COL_OFFSET);
-  incr_value_row = (signed int *)(h2p_virtual_base + INCR_VALUE_ROW_OFFSET);
-  init_center_node = (signed int *)(h2p_virtual_base + INIT_CENTER_NODE_OFFSET);
-  init_node = (signed int *)(h2p_virtual_base + INIT_NODE_OFFSET);
-  init_rho = (signed int *)(h2p_virtual_base + INIT_RHO_OFFSET);
-  number_of_rows = (signed int *)(h2p_virtual_base + NUMBER_OF_ROWS_OFFSET);
-  test_test = (signed int *)(h2p_virtual_base + TEST_TEST_OFFSET);
+  h2p_init_x = (signed int *)(h2p_virtual_base + INIT_X_OFFSET);
+  h2p_init_y = (signed int *)(h2p_virtual_base + INIT_Y_OFFSET);
+  h2p_x_partition_incr = (signed int *)(h2p_virtual_base + X_PARTITION_INCR_OFFSET);
+  h2p_y_partition_incr = (signed int *)(h2p_virtual_base + Y_PARTITION_INCR_OFFSET);
+  h2p_x_incr = (signed int *)(h2p_virtual_base + X_INCR_OFFSET);
+  h2p_y_incr = (signed int *)(h2p_virtual_base + Y_INCR_OFFSET);
+  h2p_x_limit = (signed int *)(h2p_virtual_base + X_LIMIT_OFFSET);
+  h2p_y_limit = (signed int *)(h2p_virtual_base + Y_LIMIT_OFFSET);
+  h2p_external_reset = (signed int *)(h2p_virtual_base + EXTERNAL_RESET_OFFSET);
+
   // ============================================
 
   // Input buffer
   char input_buffer[64];
-  // Number of columns (matches value set in Verilog code)
-  int number_of_cols_value = 100;
+
+  int partition = 2;
+  int partition_row_size = ROW_SIZE / partition;
+  int partition_col_size = COL_SIZE;
+  float init_x = -2.0;
+  float init_y = -1.0;
+  float range_x = 3.0;
+  float range_y = 2.0;
+  float limit_x = 1.0;
+  float limit_y = 1.0;
+  float x_incr = range_x / partition_row_size;
+  float y_incr = range_y / partition_col_size;
+  float x_partition_incr = x_incr / partition;
+  float y_partition_incr = 0;
+  int reset_signal = 0;
+
   while (1)
   {
     // Display command and received value
@@ -113,83 +137,99 @@ int main(void)
     scanf("%s", input_buffer);
     printf("received value: %s\n", input_buffer);
 
-    float init_x, init_y, range_x, range_y, limit_x, limit_y, x_incr, y_incr;
-
-    // "a" = left
-    if (strcmp(input_buffer, "a") == 0)
+    if (strcmp(input_buffer, "r") == 0)
     {
-      init_x -= init_x / 4;
+      partition_row_size = ROW_SIZE / partition;
+      partition_col_size = COL_SIZE;
+      init_x = -2.0;
+      init_y = -1.0;
+      range_x = 3.0;
+      range_y = 2.0;
+      limit_x = 1.0;
+      limit_y = 1.0;
+      x_incr = range_x / partition_row_size;
+      y_incr = range_y / partition_col_size;
+      x_partition_incr = x_incr / partition;
+      y_partition_incr = 0;
+      reset_signal = 1;
+    }
+    // "a" = left
+    else if (strcmp(input_buffer, "a") == 0)
+    {
+      init_x += init_x / 4;
       limit_x = init_x + range_x;
+      reset_signal = 1;
     }
     // "d" = right
     else if (strcmp(input_buffer, "d") == 0)
     {
-      init_x += init_x / 4;
+      init_x -= init_x / 4;
       limit_x = init_x + range_x;
+      reset_signal = 1;
     }
     // "w" = up
-    else if (strcmp(input_buffer, "d") == 0)
+    else if (strcmp(input_buffer, "w") == 0)
+    {
+      init_y -= init_y / 4;
+      limit_y = init_y + range_y;
+      reset_signal = 1;
+    }
+    // "s" = down
+    else if (strcmp(input_buffer, "s") == 0)
     {
       init_y += init_y / 4;
       limit_y = init_y + range_y;
-    }
-    // "s" = down
-    else if (strcmp(input_buffer, "d") == 0)
-    {
-      init_y -= init_y / 4;
-      limit_y = init_y + range_y;
+      reset_signal = 1;
     }
     // "i" = zoom in
-    else if (strcmp(input_buffer, "d") == 0)
+    else if (strcmp(input_buffer, "i") == 0)
     {
       range_x -= range_x / 4;
       range_y -= range_y / 4;
-        }
-    // "o" = zoom out
-    else if (strcmp(input_buffer, "d") == 0)
-    {
-      init_y -= init_y / 4;
+      x_incr = range_x / partition_row_size;
+      y_incr = range_y / partition_col_size;
+      x_partition_incr = x_incr / partition;
+      y_partition_incr = 0;
+      float middle_x = (init_x + limit_x) / 2;
+      float middle_y = (init_y + limit_y) / 2;
+      init_x = middle_x - range_x / 2;
+      init_y = middle_y - range_y / 2;
+      limit_x = middle_x + range_x / 2;
+      limit_y = middle_y + range_y / 2;
+      // TODO: change others
+      reset_signal = 1;
     }
-
-    // ---------------------------
-
-    // Asks user whether they want to reset the drum (reset parameters)
-    printf("Want to reset(y/n): ");
-    scanf("%s", input_buffer);
-    printf("received value: %s\n", input_buffer);
-    // If yes...
-    if (strcmp(input_buffer, "y") == 0)
+    // "o" = zoom out
+    else if (strcmp(input_buffer, "o") == 0)
     {
-      // Number of rows
-      printf("number of rows: ");
-      scanf("%s", input_buffer);
-      printf("received row value: %s\n", input_buffer);
-      int number_of_rows_value = atoi(input_buffer); // converts string to integer
-      // Center node intial value (determines amplitude of drum)
-      printf("center node initialization value: ");
-      scanf("%s", input_buffer);
-      float init_center_node_value = strtof(input_buffer, NULL);
-      printf("received center node value: %f\n", init_center_node_value);
-      // Prints incremenetal values for rows/columns for pyramid initialization of drum
-      float incr_value_row_value = init_center_node_value / (int)(number_of_cols_value / 2);
-      float incr_value_col_value = incr_value_row_value / (int)(number_of_rows_value / 2);
-      printf("incr row value: %f, %x\n", incr_value_row_value, to_fixed(incr_value_row_value, 17));
-      printf("incr col value: %f, %x\n", incr_value_col_value, to_fixed(incr_value_col_value, 17));
-      // Initial rho value (used in nonlinear rho effect)
-      printf("rho initialization value: ");
-      scanf("%s", input_buffer);
-      float init_rho_value = 1 / strtof(input_buffer, NULL);
-      printf("received init rho value: %f, %x\n", init_rho_value, to_fixed(init_rho_value, 17));
-
-      // Convert values to fixed point and input to PIO ports
-      *number_of_rows = number_of_rows_value;
-      *init_node = to_fixed(0.0, 17);
-      *init_center_node = to_fixed(init_center_node_value, 17);
-      *incr_value_row = to_fixed(incr_value_row_value, 17);
-      *incr_value_col = to_fixed(incr_value_col_value, 17);
-      *init_rho = to_fixed(init_rho_value, 17);
-      *(test_test) = 1;
-      *(test_test) = 0;
+      range_x += range_x / 4;
+      range_y += range_y / 4;
+      x_incr = range_x / partition_row_size;
+      y_incr = range_y / partition_col_size;
+      x_partition_incr = x_incr / partition;
+      y_partition_incr = 0;
+      float middle_x = (init_x + limit_x) / 2;
+      float middle_y = (init_y + limit_y) / 2;
+      init_x = middle_x - range_x / 2;
+      init_y = middle_y - range_y / 2;
+      limit_x = middle_x + range_x / 2;
+      limit_y = middle_y + range_y / 2;
+      // TODO: change others
+      reset_signal = 1;
+    }
+    if (reset_signal == 1)
+    {
+      *h2p_init_x = to_fixed(init_x, 23);
+      *h2p_init_y = to_fixed(init_y, 23);
+      *h2p_x_partition_incr = to_fixed(x_partition_incr, 23);
+      *h2p_y_partition_incr = to_fixed(x_partition_incr, 23);
+      *h2p_x_incr = to_fixed(x_incr, 23);
+      *h2p_y_incr = to_fixed(y_incr, 23);
+      *h2p_x_limit = to_fixed(limit_x, 23);
+      *h2p_y_limit = to_fixed(limit_y, 23);
+      *h2p_external_reset = 1;
+      *h2p_external_reset = 0;
+      reset_signal = 0;
     }
   } // end while(1)
 } // end main

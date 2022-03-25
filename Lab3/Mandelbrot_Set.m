@@ -1,6 +1,6 @@
 termination = 100;
-x = -2+0.125:0.25:2;
-y = -2:0.25:2;
+x = -2:0.125:2;
+y = -2:0.125:2;
 x_index = 1:length(x) ;
 y_index = 1:length(y) ;
 img = zeros(length(y),length(x));

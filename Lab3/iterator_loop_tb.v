@@ -6,7 +6,7 @@ module iterator_loop_tb();
   
   wire signed [10:0] counter;
   wire done;
-  iterator_loop #(100, 2, 100000) DUT(
+  iterator_loop #(100, 2, 100000, 33, 33) DUT(
   .clk      (clk),
   .reset    (reset),
   .init_x   (27'hf000000),

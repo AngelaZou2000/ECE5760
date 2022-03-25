@@ -4,7 +4,9 @@
 module iterator_loop #(
   parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
-  parameter PARTITION_SIZE = 100000
+  parameter PARTITION_SIZE = 100000,
+  parameter PARTITION_ROW_SIZE = 320,
+  parameter PARTITION_COL_SIZE = 480
   ) (
   input clk,
   input reset,
@@ -24,7 +26,7 @@ module iterator_loop #(
   reg signed [26:0] current_x, current_y;
   reg [31:0] total_counter;
   reg iterator_done, node_reset, node_reset_signal;
-  reg [$clog2(PARTITION_SIZE)-1:0] node_address;
+  reg [$clog2(PARTITION_SIZE)-1:0] node_address, node_row_address, node_col_address;
   wire node_done;
   
   assign done       = iterator_done;
@@ -37,6 +39,8 @@ module iterator_loop #(
       node_reset    <= 1'd1;
       iterator_done <= 1'd0;
       node_address <= 0;
+      node_row_address <= 0;
+      node_col_address <= 0;
       if (node_reset) node_reset <= 1'd0;
     end else begin
       if (node_done & ~iterator_done & ~node_reset) begin
@@ -44,10 +48,13 @@ module iterator_loop #(
         node_reset    <= 1'd1;
         total_counter <= total_counter + output_counter;
         current_x     <= current_x + x_incr;
-        if ($signed(current_x)>$signed(x_limit)) begin
+        node_row_address <= node_row_address + 1'b1;
+        if (node_row_address>=PARTITION_ROW_SIZE-1) begin
           current_y <= current_y + y_incr;
           current_x <= init_x;
-          if ($signed(current_y)>$signed(y_limit)) begin
+          node_row_address <= 0;
+          node_col_address <= node_col_address + 1'b1;
+          if (node_col_address>=PARTITION_COL_SIZE-1) begin
             iterator_done <= 1'd1;
           end
         end
