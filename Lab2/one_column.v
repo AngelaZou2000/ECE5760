@@ -295,7 +295,7 @@ module M10K #(parameter data_width) (
   input [8:0] write_address,
   input [8:0] read_address,
   input [data_width-1:0] d,
-  output reg [data_width-1:0] 
+  output reg [data_width-1:0] q
 );
   reg [19:0] mem [511:0];
   reg [data_width-1:0] buffer;

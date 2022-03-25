@@ -8,7 +8,8 @@ module mandelbrot_vga #(
 ) (
   input iterator_clk,
   input vga_driver_clk,
-  input reset,
+  input iterator_reset,
+  input vga_reset,
   // iterator signals
   input signed [26:0] init_x,
   input signed [26:0] init_y,
@@ -37,7 +38,7 @@ module mandelbrot_vga #(
 
   iterator_top #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE) iterator_inst (
     .clk(iterator_clk),
-    .reset(reset),
+    .reset(iterator_reset),
     .init_x(init_x),
     .init_y(init_y),
     .x_partition_incr(x_partition_incr),
@@ -61,7 +62,7 @@ module mandelbrot_vga #(
 
   vga_driver driver_inst (
     .clock(vga_driver_clk),     
-    .reset(reset),     
+    .reset(vga_reset),     
     .color_in(vga_data), 
     .next_x(next_x),  
     .next_y(next_y),  
@@ -72,7 +73,7 @@ module mandelbrot_vga #(
     .blue(blue),    
     .sync(sync),          
     .clk(clk),           
-    .blank(clk)     
+    .blank(blank)     
 );
 
 endmodule
