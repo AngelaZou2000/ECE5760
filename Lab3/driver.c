@@ -31,6 +31,7 @@ volatile signed int *h2p_y_incr = NULL;
 volatile signed int *h2p_x_limit = NULL;
 volatile signed int *h2p_y_limit = NULL;
 volatile signed int *h2p_external_reset = NULL;
+volatile signed int *h2p_cycle_count = NULL;
 
 // LW bus; PIO
 #define FPGA_LW_BASE 0xff200000
@@ -48,6 +49,7 @@ void *h2p_lw_virtual_base;
 #define X_LIMIT_OFFSET 0x60
 #define Y_LIMIT_OFFSET 0x70
 #define EXTERNAL_RESET_OFFSET 0x80
+#define CYCLE_COUNT_OFFSET 0x90
 
 // /dev/mem file id
 int fd;
@@ -109,6 +111,7 @@ int main(void)
   h2p_x_limit = (signed int *)(h2p_virtual_base + X_LIMIT_OFFSET);
   h2p_y_limit = (signed int *)(h2p_virtual_base + Y_LIMIT_OFFSET);
   h2p_external_reset = (signed int *)(h2p_virtual_base + EXTERNAL_RESET_OFFSET);
+  h2p_cycle_count = (signed int *)(h2p_virtual_base + CYCLE_COUNT_OFFSET);
 
   // ============================================
 
@@ -196,7 +199,6 @@ int main(void)
       init_y = middle_y - range_y / 2;
       limit_x = middle_x + range_x / 2;
       limit_y = middle_y + range_y / 2;
-      // TODO: change others
       reset_signal = 1;
     }
     // "o" = zoom out
@@ -216,6 +218,17 @@ int main(void)
       limit_y = middle_y + range_y / 2;
       // TODO: change others
       reset_signal = 1;
+    }
+    // "p" = performance
+    else if (strcmp(input_buffer, "p") == 0)
+    {
+      int cycle_count = *h2p_cycle_count;
+      float compute_time = cycle_count / 50.0; // unit: us
+      printf("x boundary: [%f, %f]\n", init_x, limit_x);
+      printf("y boundary: [%f, %f]\n", init_y, limit_y);
+      printf("calculation range: x: %f, y: %f\n", range_x, range_y);
+      printf("cycle count: %d\n", cycle_count);
+      printf("computation time: %f us\n", compute_time);
     }
     if (reset_signal == 1)
     {

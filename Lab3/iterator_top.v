@@ -3,7 +3,9 @@
 module iterator_top #(
   parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
-  parameter PARTITION_SIZE = 100000
+  parameter PARTITION_SIZE = 100000,
+  parameter PARTITION_ROW_SIZE = 320,
+  parameter PARTITION_COL_SIZE = 480
 )
 (
   input clk,
@@ -39,7 +41,7 @@ module iterator_top #(
   genvar partition;
   generate
     for (partition = 0; partition < PARTITION; partition = partition + 1) begin: PART
-      iterator_loop #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE, 320, 480) iterator1 (
+      iterator_loop #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator1 (
         .clk(clk),
         .reset(iterator_reset),
         .init_x(init_x_arr[partition]),
