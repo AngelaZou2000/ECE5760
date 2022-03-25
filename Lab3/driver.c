@@ -223,12 +223,12 @@ int main(void)
     else if (strcmp(input_buffer, "p") == 0)
     {
       int cycle_count = *h2p_cycle_count;
-      float compute_time = cycle_count / 50.0; // unit: us
+      float compute_time = cycle_count / 50000.0; // unit: ms
       printf("x boundary: [%f, %f]\n", init_x, limit_x);
       printf("y boundary: [%f, %f]\n", init_y, limit_y);
       printf("calculation range: x: %f, y: %f\n", range_x, range_y);
       printf("cycle count: %d\n", cycle_count);
-      printf("computation time: %f us\n", compute_time);
+      printf("computation time: %f ms\n", compute_time);
     }
     if (reset_signal == 1)
     {

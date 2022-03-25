@@ -72,44 +72,44 @@ count
 % calc(3, 3);
 % 
 % 
-% calc(0.31, 0.31);
-% calc(0.32, 0.32);
-% calc(0.33, 0.33);
-% calc(0.34, 0.34);
-% calc(0.35, 0.35);
-% calc(0.36, 0.36);
-% calc(0.37, 0.37);
-% calc(0.38, 0.38);
-% calc(0.39, 0.39);
-% calc(-1, -1);
-% calc(-2, -2);
-% calc(-3, -3);
-% calc(-0.9, -0.9);
-% calc(-0.8, -0.8);
-% calc(-0.7, -0.7);
-% calc(-0.6, -0.6);
-% calc(-0.5, -0.5);
-% calc(-0.4, -0.4);
-% calc(-0.3, -0.3);
-% calc(-0.2, -0.2);
-% calc(-0.1, -0.1);
+calc(0.31, 0.31);
+calc(0.32, 0.32);
+calc(0.33, 0.33);
+calc(0.34, 0.34);
+calc(0.35, 0.35);
+calc(0.36, 0.36);
+calc(0.37, 0.37);
+calc(0.38, 0.38);
+calc(0.39, 0.39);
+calc(-1, -1);
+calc(-2, -2);
+calc(-3, -3);
+calc(-0.9, -0.9);
+calc(-0.8, -0.8);
+calc(-0.7, -0.7);
+calc(-0.6, -0.6);
+calc(-0.5, -0.5);
+calc(-0.4, -0.4);
+calc(-0.3, -0.3);
+calc(-0.2, -0.2);
+calc(-0.1, -0.1);
 % 
 
 % calc(0.000001, -1);
 % calc(0, -1);
-% function calc(x_real, y_img)
-% %     x_real = 0.5;
-% %     y_img = 0.5;
-%     termination = 1000;
-%     n = 0;
-%     c = x_real + i*y_img;
-%     z = 0;
-%     while (abs(z)<=2 && n<termination)
-%         z = z^2 + c;
-%         n = n + 1;
-%     end
-%     disp("x: " + x_real + "+" + y_img + "i -----" + " n: " + n ); 
-% end
+function calc(x_real, y_img)
+%     x_real = 0.5;
+%     y_img = 0.5;
+    termination = 1000;
+    n = 0;
+    c = x_real + i*y_img;
+    z = 0;
+    while (abs(z)<=2 && n<termination)
+        z = z^2 + c;
+        n = n + 1;
+    end
+    disp("x: " + x_real + "+" + y_img + "i -----" + " n: " + n ); 
+end
 
 
 
