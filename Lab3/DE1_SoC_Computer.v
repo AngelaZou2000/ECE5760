@@ -357,21 +357,22 @@ output					HPS_USB_STP;
 //  REG/WIRE declarations
 //=======================================================
 
-wire			[15: 0]	hex3_hex0;
+wire			[23: 0]	hex3_hex0;
 //wire			[15: 0]	hex5_hex4;
 
 //assign HEX0 = ~hex3_hex0[ 6: 0]; // hex3_hex0[ 6: 0]; 
 //assign HEX1 = ~hex3_hex0[14: 8];
 //assign HEX2 = ~hex3_hex0[22:16];
 //assign HEX3 = ~hex3_hex0[30:24];
-assign HEX4 = 7'b1111111;
-assign HEX5 = 7'b1111111;
+//assign HEX4 = 7'b1111111;
+//assign HEX5 = 7'b1111111;
 
 HexDigit Digit0(HEX0, hex3_hex0[3:0]);
 HexDigit Digit1(HEX1, hex3_hex0[7:4]);
 HexDigit Digit2(HEX2, hex3_hex0[11:8]);
 HexDigit Digit3(HEX3, hex3_hex0[15:12]);
-
+HexDigit Digit4(HEX4, hex3_hex0[19:16]);
+HexDigit Digit5(HEX5, hex3_hex0[23:20]);
 // VGA clock and reset lines
 wire vga_pll_lock ;
 wire vga_pll ;
@@ -462,11 +463,26 @@ mandelbrot_vga #(1000, 2, 153600, 320, 480) inst (
 	.clk(VGA_CLK),
 	.blank(VGA_BLANK_N)
 );
+wire [31:0] cycle_count_pio;
 reg [31:0] cycle_counter;
+reg counting_signal;
+assign cycle_count_pio = cycle_counter;
+assign hex3_hex0 = cycle_counter;
+assign LEDR[0] = external_reset;
+assign LEDR[1] = iterator_done;
 always@(posedge CLOCK_50) begin
-	if (external_reset) cycle_counter <= 0;
-	else if (iterator_done) cycle_counter <= cycle_counter;
-	else cycle_counter <= cycle_counter + 1'b1;
+	if (external_reset) begin
+		cycle_counter <= 32'b0;
+		counting_signal <= 1'b0;
+	end
+	else if (iterator_done) begin
+		cycle_counter <= cycle_counter;
+		counting_signal <= 1'b0;
+	end
+	else begin
+		cycle_counter <= cycle_counter + 1'b1;
+		counting_signal <= 1'b1;
+	end
 end
 
 //// Instantiate VGA driver					
@@ -514,6 +530,7 @@ Computer_System The_System (
 	.x_limit_external_connection_export	(x_limit),          
 	.y_limit_external_connection_export	(y_limit),
 	.external_reset_external_connection_export	(external_reset),
+	.cycle_count_external_connection_export (cycle_count_pio),
 	
 
 	////////////////////////////////////
