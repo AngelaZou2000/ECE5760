@@ -2,7 +2,8 @@
 
 module iterator_top #(
   parameter MAX_ITERATIONS = 100,
-  parameter PARTITION = 2
+  parameter PARTITION = 2,
+  parameter PARTITION_SIZE = 100000
 )
 (
   input clk,
@@ -13,10 +14,13 @@ module iterator_top #(
   input signed [26:0] y_partition_incr,
   input signed [26:0] x_incr, // TODO: process on the HPS side
   input signed [26:0] y_incr,
-  input signed [26:0] x_limit,
+  input signed [26:0] x_limit, 
   input signed [26:0] y_limit,
   // output [10:0] output_counter,
-  output wire done
+  output wire done,
+  input [$clog2(PARTITION_SIZE)-1:0] m10k_read_address,
+  input [$clog2(PARTITION)-1:0] partition_index,
+  output [7:0] vga_data
 );
 
   wire iterator_reset;
@@ -25,15 +29,17 @@ module iterator_top #(
   reg signed [26:0] init_y_arr [PARTITION-1:0];
   reg signed [26:0] x_limit_arr [PARTITION-1:0];
   reg signed [26:0] y_limit_arr [PARTITION-1:0];
-  wire signed [10:0] output_counter_arr [PARTITION-1:0];
+  wire signed [$clog2(PARTITION_SIZE)-1:0] output_counter_arr [PARTITION-1:0];
+  wire [7:0] m10k_read_data_arr [PARTITION-1:0];
   wire [PARTITION-1:0] iterator_done;
 
   assign done = &iterator_done;
+  assign vga_data = m10k_read_data_arr[partition_index];
 
   genvar partition;
   generate
     for (partition = 0; partition < PARTITION; partition = partition + 1) begin: PART
-      iterator_loop iterator1 (
+      iterator_loop #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE) iterator1 (
         .clk(clk),
         .reset(iterator_reset),
         .init_x(init_x_arr[partition]),
@@ -43,7 +49,9 @@ module iterator_top #(
         .x_limit(x_limit_arr[partition]),
         .y_limit(y_limit_arr[partition]),
         .output_counter(output_counter_arr[partition]),
-        .done(iterator_done[partition])
+        .done(iterator_done[partition]),
+        .m10k_read_address(m10k_read_address),
+        .m10k_read_data(m10k_read_data_arr[partition])
       );
     end
   endgenerate
@@ -71,8 +79,6 @@ module iterator_top #(
     else state_next = state_reg;
   end
 
-  
-
   always@(posedge clk) begin
     if (reset) begin
       counter <= 32'd0;
@@ -94,7 +100,5 @@ module iterator_top #(
     else if (state_reg == CALC & ~done) 
       counter <= counter + 1'b1;
   end
-
-
 
 endmodule

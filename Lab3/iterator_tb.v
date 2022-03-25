@@ -9,11 +9,16 @@ module iterator_tb();
   iterator DUT(
   .clk(clk),
   .reset(reset),
-  .cr(27'h800000),
-  .ci(27'h800000),
+  .cr(27'h2f5c29),
+  .ci(27'h2f5c29),
   .counter(counter),
-  .done(done)
+  .done(done),
+  .m10k_read_address(),
+  .m10k_write_address(),
+  .m10k_read_data()
   );
+
+
   
   //Initialize clocks and index
   initial begin

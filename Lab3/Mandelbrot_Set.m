@@ -1,15 +1,17 @@
 termination = 100;
-x = -1.875:0.25:2;
+x = -2+0.125:0.25:2;
 y = -2:0.25:2;
 x_index = 1:length(x) ;
 y_index = 1:length(y) ;
 img = zeros(length(y),length(x));
 
 N_total = 0;
+count = 0;
 for j=y_index
     for k=x_index
         z = 0;
         n = 0;
+        count = count + 1;
         c = x(k)+ y(j)*i ;%complex number
         while (abs(z)<2 && n<termination)
             z = z^2 + c;
@@ -22,6 +24,7 @@ for j=y_index
 end
 
 N_total
+count
 
 %%%%%%%% Option to enter in x/y pixels %%%%%%%%%%%%%%%
 % x_pixel_num = 50;
@@ -92,21 +95,21 @@ N_total
 % calc(-0.1, -0.1);
 % 
 
-calc(0.000001, -1);
-calc(0, -1);
-function calc(x_real, y_img)
-%     x_real = 0.5;
-%     y_img = 0.5;
-    termination = 1000;
-    n = 0;
-    c = x_real + i*y_img;
-    z = 0;
-    while (abs(z)<=2 && n<termination)
-        z = z^2 + c;
-        n = n + 1;
-    end
-    disp("x: " + x_real + "+" + y_img + "i -----" + " n: " + n ); 
-end
+% calc(0.000001, -1);
+% calc(0, -1);
+% function calc(x_real, y_img)
+% %     x_real = 0.5;
+% %     y_img = 0.5;
+%     termination = 1000;
+%     n = 0;
+%     c = x_real + i*y_img;
+%     z = 0;
+%     while (abs(z)<=2 && n<termination)
+%         z = z^2 + c;
+%         n = n + 1;
+%     end
+%     disp("x: " + x_real + "+" + y_img + "i -----" + " n: " + n ); 
+% end
 
 
 

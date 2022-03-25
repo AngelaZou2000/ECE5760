@@ -6,17 +6,19 @@ module iterator_loop_tb();
   
   wire signed [10:0] counter;
   wire done;
-  iterator_loop DUT(
+  iterator_loop #(100, 2, 100000) DUT(
   .clk      (clk),
   .reset    (reset),
-  .init_x   (27'h0),
-  .init_y   (27'h0),
-  .x_incr   (27'h400000),
-  .y_incr   (27'h400000),
-  .x_limit  (27'h1000000),
-  .y_limit  (27'h1000000),
+  .init_x   (27'hf000000),
+  .init_y   (27'hf000000),
+  .x_incr   (27'h100000),
+  .y_incr   (27'h100000),
+  .x_limit  (27'h1000000 - 27'h100000),
+  .y_limit  (27'h1000000 - 27'h100000),
   .output_counter(counter),
-  .done       (done)
+  .done       (done),
+  .m10k_read_address (),
+  .m10k_read_data ()
   );
   
   //Initialize clocks and index
