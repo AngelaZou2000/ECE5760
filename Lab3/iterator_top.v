@@ -1,7 +1,6 @@
 `include "iterator_loop.v"
 
 module iterator_top #(
-  parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
   parameter PARTITION_SIZE = 100000,
   parameter PARTITION_ROW_SIZE = 320,
@@ -22,6 +21,7 @@ module iterator_top #(
   output wire done,
   input [$clog2(PARTITION_SIZE)-1:0] m10k_read_address,
   input [$clog2(PARTITION)-1:0] partition_index,
+  input [31:0] MAX_ITERATIONS,
   output [7:0] vga_data
 );
 
@@ -41,7 +41,7 @@ module iterator_top #(
   genvar partition;
   generate
     for (partition = 0; partition < PARTITION; partition = partition + 1) begin: PART
-      iterator_loop #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator1 (
+      iterator_loop #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator1 (
         .clk(clk),
         .reset(iterator_reset),
         .init_x(init_x_arr[partition]),
@@ -53,6 +53,7 @@ module iterator_top #(
         .output_counter(output_counter_arr[partition]),
         .done(iterator_done[partition]),
         .m10k_read_address(m10k_read_address),
+        .MAX_ITERATIONS(MAX_ITERATIONS),
         .m10k_read_data(m10k_read_data_arr[partition])
       );
     end

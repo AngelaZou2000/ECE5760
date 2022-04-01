@@ -2,9 +2,8 @@
 `include "vga_driver.v"
 
 module mandelbrot_vga #(
-  parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
-  parameter PARTITION_SIZE = 100000,
+  parameter PARTITION_SIZE = 153600,
   parameter PARTITION_ROW_SIZE = 320,
   parameter PARTITION_COL_SIZE = 480
 ) (
@@ -21,6 +20,7 @@ module mandelbrot_vga #(
   input signed [26:0] y_incr,
   input signed [26:0] x_limit, 
   input signed [26:0] y_limit,
+  input [31:0] MAX_ITERATIONS,
   output wire iterator_done,
   // VGA driver signals
   output wire hsync,    // HSYNC (to VGA connector)
@@ -38,7 +38,7 @@ module mandelbrot_vga #(
   wire [$clog2(PARTITION)-1:0] partition_index;
   wire [9:0] next_x, next_y;
 
-  iterator_top #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator_inst (
+  iterator_top #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator_inst (
     .clk(iterator_clk),
     .reset(iterator_reset),
     .init_x(init_x),
@@ -52,10 +52,11 @@ module mandelbrot_vga #(
     .done(iterator_done),
     .m10k_read_address(m10k_read_address),
     .partition_index(partition_index),
+    .MAX_ITERATIONS(MAX_ITERATIONS),
     .vga_data(vga_data)
   );
 
-  mapper #(PARTITION, PARTITION_SIZE) mapper_inst (
+  mapper #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) mapper_inst (
     .next_x(next_x),
     .next_y(next_y),
     .m10k_read_address(m10k_read_address),

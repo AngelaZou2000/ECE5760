@@ -1,5 +1,5 @@
 `default_nettype wire
-module iterator #(parameter PARTITION_SIZE = 100000, parameter MAX_ITERATIONS = 100) (
+module iterator #(parameter PARTITION_SIZE = 100000) (
   input               clk,
   input               reset,
   input signed [26:0] cr,
@@ -9,6 +9,7 @@ module iterator #(parameter PARTITION_SIZE = 100000, parameter MAX_ITERATIONS = 
   // VGA handling
   input [$clog2(PARTITION_SIZE)-1:0] m10k_read_address,
   input [$clog2(PARTITION_SIZE)-1:0] m10k_write_address,
+  input [31:0] MAX_ITERATIONS,
   output [7:0] m10k_read_data
 );
   reg signed [26:0] curr_zr, curr_zi, curr_zr_pow2, curr_zi_pow2;

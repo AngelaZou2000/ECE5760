@@ -357,21 +357,22 @@ output					HPS_USB_STP;
 //  REG/WIRE declarations
 //=======================================================
 
-wire			[15: 0]	hex3_hex0;
+wire			[23: 0]	hex3_hex0;
 //wire			[15: 0]	hex5_hex4;
 
 //assign HEX0 = ~hex3_hex0[ 6: 0]; // hex3_hex0[ 6: 0]; 
 //assign HEX1 = ~hex3_hex0[14: 8];
 //assign HEX2 = ~hex3_hex0[22:16];
 //assign HEX3 = ~hex3_hex0[30:24];
-assign HEX4 = 7'b1111111;
-assign HEX5 = 7'b1111111;
+//assign HEX4 = 7'b1111111;
+//assign HEX5 = 7'b1111111;
 
 HexDigit Digit0(HEX0, hex3_hex0[3:0]);
 HexDigit Digit1(HEX1, hex3_hex0[7:4]);
 HexDigit Digit2(HEX2, hex3_hex0[11:8]);
 HexDigit Digit3(HEX3, hex3_hex0[15:12]);
-
+HexDigit Digit4(HEX4, hex3_hex0[19:16]);
+HexDigit Digit5(HEX5, hex3_hex0[23:20]);
 // VGA clock and reset lines
 wire vga_pll_lock ;
 wire vga_pll ;
@@ -388,59 +389,17 @@ reg 					write_enable ;
 wire 					M10k_pll ;
 wire 					M10k_pll_locked ;
 
-//// Memory writing control registers
-//reg 		[7:0] 	arbiter_state ;
-//reg 		[9:0] 	x_coord ;
-//reg 		[9:0] 	y_coord ;
-//
-//// Wires for connecting VGA driver to memory
-//wire 		[9:0]		next_x ;
-//wire 		[9:0] 	next_y ;
-//
-//always@(posedge M10k_pll) begin
-//	// Zero everything in reset
-//	if (~KEY[0]) begin
-//		arbiter_state <= 8'd_0 ;
-//		vga_reset <= 1'b_1 ;
-//		x_coord <= 10'd_0 ;
-//		y_coord <= 10'd_0 ;
-//	end
-//	// Otherwiser repeatedly write a large checkerboard to memory
-//	else begin
-//		if (arbiter_state == 8'd_0) begin
-//			vga_reset <= 1'b_0 ;
-//			write_enable <= 1'b_1 ;
-//			write_address <= (19'd_640 * y_coord) + x_coord ;
-//			if (x_coord < 10'd_320) begin
-//				if (y_coord < 10'd_240) begin
-//					write_data <= 8'b_111_000_00 ;
-//				end
-//				else begin
-//					write_data <= 8'b_000_111_00 ;
-//				end
-//			end
-//			else begin
-//				if (y_coord < 10'd_240) begin
-//					write_data <= 8'b_000_000_11 ;
-//				end
-//				else begin
-//					write_data <= 8'b_111_111_00 ;
-//				end
-//			end
-//			x_coord <= (x_coord==10'd_639)?10'd_0:(x_coord + 10'd_1) ;
-//			y_coord <= (x_coord==10'd_639)?((y_coord==10'd_479)?10'd_0:(y_coord+10'd_1)):y_coord ;
-//			arbiter_state <= 8'd_0 ;
-//		end
-//	end
-//end
-
 wire [31:0] init_x, init_y, x_partition_incr, y_partition_incr, x_incr, y_incr, x_limit, y_limit, external_reset;
 wire iterator_done;
+wire [31:0] MAX_ITERATIONS;
+wire iterator_reset;
 
-mandelbrot_vga #(1000, 2, 153600, 320, 480) inst (
+assign iterator_reset = (~KEY[0]) ? 1 : (external_reset[0] ? 1 : 0);
+
+mandelbrot_vga #(4, 76800, 160, 480) inst (
 	.iterator_clk(CLOCK_50),
 	.vga_driver_clk(vga_pll),
-	.iterator_reset(external_reset),
+	.iterator_reset(iterator_reset),
 	.vga_reset(vga_reset),
 	// iterator signals
   .init_x     (init_x),
@@ -451,6 +410,7 @@ mandelbrot_vga #(1000, 2, 153600, 320, 480) inst (
   .y_incr     (y_incr),
   .x_limit    (x_limit),
   .y_limit    (y_limit),
+	.MAX_ITERATIONS (MAX_ITERATIONS),
 	.iterator_done (iterator_done),
 	// VGA driver signals
 	.hsync(VGA_HS),
@@ -462,29 +422,27 @@ mandelbrot_vga #(1000, 2, 153600, 320, 480) inst (
 	.clk(VGA_CLK),
 	.blank(VGA_BLANK_N)
 );
+wire [31:0] cycle_count_pio;
 reg [31:0] cycle_counter;
+reg counting_signal;
+assign cycle_count_pio = cycle_counter;
+assign hex3_hex0 = cycle_counter;
+assign LEDR[0] = external_reset;
+assign LEDR[1] = iterator_done;
 always@(posedge CLOCK_50) begin
-	if (external_reset) cycle_counter <= 0;
-	else if (iterator_done) cycle_counter <= cycle_counter;
-	else cycle_counter <= cycle_counter + 1'b1;
+	if (external_reset) begin
+		cycle_counter <= 32'b0;
+		counting_signal <= 1'b0;
+	end
+	else if (iterator_done) begin
+		cycle_counter <= cycle_counter;
+		counting_signal <= 1'b0;
+	end
+	else begin
+		cycle_counter <= cycle_counter + 1'b1;
+		counting_signal <= 1'b1;
+	end
 end
-
-//// Instantiate VGA driver					
-//vga_driver DUT   (	.clock(vga_pll), 
-//							.reset(vga_reset),
-//							.color_in(M10k_out),	// Pixel color (8-bit) from memory
-//							.next_x(next_x),		// This (and next_y) used to specify memory read address
-//							.next_y(next_y),		// This (and next_x) used to specify memory read address
-//							.hsync(VGA_HS),
-//							.vsync(VGA_VS),
-//							.red(VGA_R),
-//							.green(VGA_G),
-//							.blue(VGA_B),
-//							.sync(VGA_SYNC_N),
-//							.clk(VGA_CLK),
-//							.blank(VGA_BLANK_N)
-//);
-
 
 //=======================================================
 //  Structural coding
@@ -514,6 +472,8 @@ Computer_System The_System (
 	.x_limit_external_connection_export	(x_limit),          
 	.y_limit_external_connection_export	(y_limit),
 	.external_reset_external_connection_export	(external_reset),
+	.cycle_count_external_connection_export (cycle_count_pio),
+	.max_iteration_external_connection_export (MAX_ITERATIONS),
 	
 
 	////////////////////////////////////
@@ -622,7 +582,10 @@ Computer_System The_System (
 );
 endmodule // end top level
 
-// Declaration of module, include width and signedness of each input/output
+
+//============================================================
+// VGA Driver
+//============================================================
 module vga_driver (
 	input wire clock,
 	input wire reset,
@@ -795,14 +758,10 @@ module vga_driver (
 
 endmodule
 
-
-
-
 //============================================================
 // Iterator Top
 //============================================================
 module iterator_top #(
-  parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
   parameter PARTITION_SIZE = 100000,
   parameter PARTITION_ROW_SIZE = 320,
@@ -823,6 +782,7 @@ module iterator_top #(
   output wire done,
   input [$clog2(PARTITION_SIZE)-1:0] m10k_read_address,
   input [$clog2(PARTITION)-1:0] partition_index,
+  input [31:0] MAX_ITERATIONS,
   output [7:0] vga_data
 );
 
@@ -842,7 +802,7 @@ module iterator_top #(
   genvar partition;
   generate
     for (partition = 0; partition < PARTITION; partition = partition + 1) begin: PART
-      iterator_loop #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator1 (
+      iterator_loop #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator1 (
         .clk(clk),
         .reset(iterator_reset),
         .init_x(init_x_arr[partition]),
@@ -854,6 +814,7 @@ module iterator_top #(
         .output_counter(output_counter_arr[partition]),
         .done(iterator_done[partition]),
         .m10k_read_address(m10k_read_address),
+        .MAX_ITERATIONS(MAX_ITERATIONS),
         .m10k_read_data(m10k_read_data_arr[partition])
       );
     end
@@ -910,7 +871,6 @@ endmodule
 // Iterator Loop
 //============================================================
 module iterator_loop #(
-  parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
   parameter PARTITION_SIZE = 100000,
   parameter PARTITION_ROW_SIZE = 320,
@@ -928,6 +888,7 @@ module iterator_loop #(
   output wire done,
   // VGA handling
   input [$clog2(PARTITION_SIZE)-1:0] m10k_read_address,
+  input [31:0] MAX_ITERATIONS,
   output [7:0] m10k_read_data
 );
   
@@ -973,7 +934,7 @@ module iterator_loop #(
     end
   end
       
-  iterator #(PARTITION_SIZE, MAX_ITERATIONS) node_inst (
+  iterator #(PARTITION_SIZE) node_inst (
   .clk                (clk),
   .reset              (node_reset),
   .cr                 (current_x),
@@ -982,16 +943,18 @@ module iterator_loop #(
   .done               (node_done),
   .m10k_read_address  (m10k_read_address),
   .m10k_write_address (node_address),
+  .MAX_ITERATIONS     (MAX_ITERATIONS),
   .m10k_read_data     (m10k_read_data)
   );
 
 endmodule
 
 
+
 //============================================================
 // Iterator
 //============================================================
-module iterator #(parameter PARTITION_SIZE = 100000, parameter MAX_ITERATIONS = 100) (
+module iterator #(parameter PARTITION_SIZE = 100000) (
   input               clk,
   input               reset,
   input signed [26:0] cr,
@@ -1001,6 +964,7 @@ module iterator #(parameter PARTITION_SIZE = 100000, parameter MAX_ITERATIONS = 
   // VGA handling
   input [$clog2(PARTITION_SIZE)-1:0] m10k_read_address,
   input [$clog2(PARTITION_SIZE)-1:0] m10k_write_address,
+  input [31:0] MAX_ITERATIONS,
   output [7:0] m10k_read_data
 );
   reg signed [26:0] curr_zr, curr_zi, curr_zr_pow2, curr_zi_pow2;
@@ -1103,10 +1067,11 @@ endmodule
 //============================================================
 // Mapper
 //============================================================
-
 module mapper #(
   parameter PARTITION = 2,
-  parameter PARTITION_SIZE = 100000
+  parameter PARTITION_SIZE = 153600,
+  parameter PARTITION_ROW_SIZE = 320,
+  parameter PARTITION_COL_SIZE = 480
   ) (
   input [9:0] next_x,
   input [9:0] next_y,
@@ -1116,9 +1081,9 @@ module mapper #(
 
 wire [$clog2(PARTITION_SIZE)-1:0] mult;
 
-assign partition_index = next_x[0];
-assign mult = next_y * (10'd320);
-assign m10k_read_address = mult + (next_x >> 1);
+assign partition_index = next_x[$clog2(PARTITION)-1:0];
+assign mult = next_y * PARTITION_ROW_SIZE;
+assign m10k_read_address = mult + (next_x >> $clog2(PARTITION));
 
 
 endmodule
@@ -1128,7 +1093,6 @@ endmodule
 // mandelbrot_vga
 //============================================================
 module mandelbrot_vga #(
-  parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
   parameter PARTITION_SIZE = 100000,
   parameter PARTITION_ROW_SIZE = 320,
@@ -1147,6 +1111,7 @@ module mandelbrot_vga #(
   input signed [26:0] y_incr,
   input signed [26:0] x_limit, 
   input signed [26:0] y_limit,
+  input [31:0] MAX_ITERATIONS,
   output wire iterator_done,
   // VGA driver signals
   output wire hsync,    // HSYNC (to VGA connector)
@@ -1164,7 +1129,7 @@ module mandelbrot_vga #(
   wire [$clog2(PARTITION)-1:0] partition_index;
   wire [9:0] next_x, next_y;
 
-  iterator_top #(MAX_ITERATIONS, PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator_inst (
+  iterator_top #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator_inst (
     .clk(iterator_clk),
     .reset(iterator_reset),
     .init_x(init_x),
@@ -1178,10 +1143,11 @@ module mandelbrot_vga #(
     .done(iterator_done),
     .m10k_read_address(m10k_read_address),
     .partition_index(partition_index),
+    .MAX_ITERATIONS(MAX_ITERATIONS),
     .vga_data(vga_data)
   );
 
-  mapper #(PARTITION, PARTITION_SIZE) mapper_inst (
+  mapper #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) mapper_inst (
     .next_x(next_x),
     .next_y(next_y),
     .m10k_read_address(m10k_read_address),

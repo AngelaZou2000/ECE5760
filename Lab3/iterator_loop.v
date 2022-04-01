@@ -2,7 +2,6 @@
 `default_nettype wire
 
 module iterator_loop #(
-  parameter MAX_ITERATIONS = 100,
   parameter PARTITION = 2,
   parameter PARTITION_SIZE = 100000,
   parameter PARTITION_ROW_SIZE = 320,
@@ -20,6 +19,7 @@ module iterator_loop #(
   output wire done,
   // VGA handling
   input [$clog2(PARTITION_SIZE)-1:0] m10k_read_address,
+  input [31:0] MAX_ITERATIONS,
   output [7:0] m10k_read_data
 );
   
@@ -65,7 +65,7 @@ module iterator_loop #(
     end
   end
       
-  iterator #(PARTITION_SIZE, MAX_ITERATIONS) node_inst (
+  iterator #(PARTITION_SIZE) node_inst (
   .clk                (clk),
   .reset              (node_reset),
   .cr                 (current_x),
@@ -74,6 +74,7 @@ module iterator_loop #(
   .done               (node_done),
   .m10k_read_address  (m10k_read_address),
   .m10k_write_address (node_address),
+  .MAX_ITERATIONS     (MAX_ITERATIONS),
   .m10k_read_data     (m10k_read_data)
   );
 

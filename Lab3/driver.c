@@ -32,6 +32,7 @@ volatile signed int *h2p_x_limit = NULL;
 volatile signed int *h2p_y_limit = NULL;
 volatile signed int *h2p_external_reset = NULL;
 volatile signed int *h2p_cycle_count = NULL;
+volatile signed int *h2p_MAX_ITERATION = NULL;
 
 // LW bus; PIO
 #define FPGA_LW_BASE 0xff200000
@@ -50,6 +51,7 @@ void *h2p_lw_virtual_base;
 #define Y_LIMIT_OFFSET 0x70
 #define EXTERNAL_RESET_OFFSET 0x80
 #define CYCLE_COUNT_OFFSET 0x90
+#define MAX_ITERATION_OFFSET 0xA0
 
 // /dev/mem file id
 int fd;
@@ -112,13 +114,14 @@ int main(void)
   h2p_y_limit = (signed int *)(h2p_virtual_base + Y_LIMIT_OFFSET);
   h2p_external_reset = (signed int *)(h2p_virtual_base + EXTERNAL_RESET_OFFSET);
   h2p_cycle_count = (signed int *)(h2p_virtual_base + CYCLE_COUNT_OFFSET);
+  h2p_MAX_ITERATION = (signed int *)(h2p_virtual_base + MAX_ITERATION_OFFSET);
 
   // ============================================
 
   // Input buffer
   char input_buffer[64];
 
-  int partition = 2;
+  int partition = 32;
   int partition_row_size = ROW_SIZE / partition;
   int partition_col_size = COL_SIZE;
   float init_x = -2.0;
@@ -132,6 +135,17 @@ int main(void)
   float x_partition_incr = x_incr / partition;
   float y_partition_incr = 0;
   int reset_signal = 0;
+  int max_iteration = 1000;
+
+  *h2p_init_x = to_fixed(init_x, 23);
+  *h2p_init_y = to_fixed(init_y, 23);
+  *h2p_x_partition_incr = to_fixed(x_partition_incr, 23);
+  *h2p_y_partition_incr = to_fixed(y_partition_incr, 23);
+  *h2p_x_incr = to_fixed(x_incr, 23);
+  *h2p_y_incr = to_fixed(y_incr, 23);
+  *h2p_x_limit = to_fixed(limit_x, 23);
+  *h2p_y_limit = to_fixed(limit_y, 23);
+  *h2p_MAX_ITERATION = 1000;
 
   while (1)
   {
@@ -154,33 +168,35 @@ int main(void)
       y_incr = range_y / partition_col_size;
       x_partition_incr = x_incr / partition;
       y_partition_incr = 0;
+      max_iteration = 1000;
+      printf("%d, %d, %f, %f, %f\n", partition_row_size, partition_col_size, x_incr, y_incr, x_partition_incr);
       reset_signal = 1;
     }
     // "a" = left
     else if (strcmp(input_buffer, "a") == 0)
     {
-      init_x += init_x / 4;
+      init_x -= range_x / 6;
       limit_x = init_x + range_x;
       reset_signal = 1;
     }
     // "d" = right
     else if (strcmp(input_buffer, "d") == 0)
     {
-      init_x -= init_x / 4;
+      init_x += range_x / 6;
       limit_x = init_x + range_x;
       reset_signal = 1;
     }
     // "w" = up
     else if (strcmp(input_buffer, "w") == 0)
     {
-      init_y -= init_y / 4;
+      init_y -= range_y / 6;
       limit_y = init_y + range_y;
       reset_signal = 1;
     }
     // "s" = down
     else if (strcmp(input_buffer, "s") == 0)
     {
-      init_y += init_y / 4;
+      init_y += range_y / 6;
       limit_y = init_y + range_y;
       reset_signal = 1;
     }
@@ -219,6 +235,15 @@ int main(void)
       // TODO: change others
       reset_signal = 1;
     }
+    // "m" = max iteration
+    else if (strcmp(input_buffer, "m") == 0)
+    {
+      printf("max iteration input: ");
+      scanf("%s", input_buffer);
+      max_iteration = atoi(input_buffer);
+      // printf("received max iteration value: %s, %d\n", input_buffer, max_iteration);
+      reset_signal = 1;
+    }
     // "p" = performance
     else if (strcmp(input_buffer, "p") == 0)
     {
@@ -227,6 +252,7 @@ int main(void)
       printf("x boundary: [%f, %f]\n", init_x, limit_x);
       printf("y boundary: [%f, %f]\n", init_y, limit_y);
       printf("calculation range: x: %f, y: %f\n", range_x, range_y);
+      printf("max iteration: %d\n", max_iteration);
       printf("cycle count: %d\n", cycle_count);
       printf("computation time: %f ms\n", compute_time);
     }
@@ -235,11 +261,12 @@ int main(void)
       *h2p_init_x = to_fixed(init_x, 23);
       *h2p_init_y = to_fixed(init_y, 23);
       *h2p_x_partition_incr = to_fixed(x_partition_incr, 23);
-      *h2p_y_partition_incr = to_fixed(x_partition_incr, 23);
+      *h2p_y_partition_incr = to_fixed(y_partition_incr, 23);
       *h2p_x_incr = to_fixed(x_incr, 23);
       *h2p_y_incr = to_fixed(y_incr, 23);
       *h2p_x_limit = to_fixed(limit_x, 23);
       *h2p_y_limit = to_fixed(limit_y, 23);
+      *h2p_MAX_ITERATION = max_iteration;
       *h2p_external_reset = 1;
       *h2p_external_reset = 0;
       reset_signal = 0;
