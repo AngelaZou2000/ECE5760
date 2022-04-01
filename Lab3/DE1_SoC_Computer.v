@@ -474,8 +474,6 @@ Computer_System The_System (
 	.external_reset_external_connection_export	(external_reset),
 	.cycle_count_external_connection_export (cycle_count_pio),
 	.max_iteration_external_connection_export (MAX_ITERATIONS),
-	
-
 	////////////////////////////////////
 	// HPS Side
 	////////////////////////////////////
