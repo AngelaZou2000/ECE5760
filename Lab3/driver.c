@@ -121,7 +121,7 @@ int main(void)
   // Input buffer
   char input_buffer[64];
 
-  int partition = 32;
+  int partition = 40;
   int partition_row_size = ROW_SIZE / partition;
   int partition_col_size = COL_SIZE;
   float init_x = -2.0;
