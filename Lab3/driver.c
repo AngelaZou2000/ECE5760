@@ -1,8 +1,6 @@
 ///////////////////////////////////////
-/// 640x480 version!
-/// test VGA with hardware video input copy to VGA
-// compile with
-// gcc pio_test_1.c -o pio
+/// drive.c for displaying and command input
+/// for Mandelbrot Set Visualizer
 ///////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -121,7 +119,7 @@ int main(void)
   // Input buffer
   char input_buffer[64];
 
-  int partition = 40;
+  int partition = 40; //Define partition size
   int partition_row_size = ROW_SIZE / partition;
   int partition_col_size = COL_SIZE;
   float init_x = -2.0;
@@ -137,6 +135,7 @@ int main(void)
   int reset_signal = 0;
   int max_iteration = 1000;
 
+  // Converter initial values to fix points
   *h2p_init_x = to_fixed(init_x, 23);
   *h2p_init_y = to_fixed(init_y, 23);
   *h2p_x_partition_incr = to_fixed(x_partition_incr, 23);
@@ -154,6 +153,7 @@ int main(void)
     scanf("%s", input_buffer);
     printf("received value: %s\n", input_buffer);
 
+    // RESET command, reset values to inital values
     if (strcmp(input_buffer, "r") == 0)
     {
       partition_row_size = ROW_SIZE / partition;
@@ -172,35 +172,35 @@ int main(void)
       printf("%d, %d, %f, %f, %f\n", partition_row_size, partition_col_size, x_incr, y_incr, x_partition_incr);
       reset_signal = 1;
     }
-    // "a" = left
+    // "a": move left on the visualizer 
     else if (strcmp(input_buffer, "a") == 0)
     {
       init_x -= range_x / 6;
       limit_x = init_x + range_x;
       reset_signal = 1;
     }
-    // "d" = right
+    // "d": move right on the visualizer 
     else if (strcmp(input_buffer, "d") == 0)
     {
       init_x += range_x / 6;
       limit_x = init_x + range_x;
       reset_signal = 1;
     }
-    // "w" = up
+    // "w": move up on the visualizer 
     else if (strcmp(input_buffer, "w") == 0)
     {
       init_y -= range_y / 6;
       limit_y = init_y + range_y;
       reset_signal = 1;
     }
-    // "s" = down
+    // "s" : move up on the visualizer 
     else if (strcmp(input_buffer, "s") == 0)
     {
       init_y += range_y / 6;
       limit_y = init_y + range_y;
       reset_signal = 1;
     }
-    // "i" = zoom in
+    // "i": zoom in 25%
     else if (strcmp(input_buffer, "i") == 0)
     {
       range_x -= range_x / 4;
@@ -217,7 +217,7 @@ int main(void)
       limit_y = middle_y + range_y / 2;
       reset_signal = 1;
     }
-    // "o" = zoom out
+    // "o": zoom out 25%
     else if (strcmp(input_buffer, "o") == 0)
     {
       range_x += range_x / 4;
@@ -232,10 +232,9 @@ int main(void)
       init_y = middle_y - range_y / 2;
       limit_x = middle_x + range_x / 2;
       limit_y = middle_y + range_y / 2;
-      // TODO: change others
       reset_signal = 1;
     }
-    // "m" = max iteration
+    // "m": max iteration
     else if (strcmp(input_buffer, "m") == 0)
     {
       printf("max iteration input: ");
@@ -244,7 +243,7 @@ int main(void)
       // printf("received max iteration value: %s, %d\n", input_buffer, max_iteration);
       reset_signal = 1;
     }
-    // "p" = performance
+    // "p": print out performance
     else if (strcmp(input_buffer, "p") == 0)
     {
       int cycle_count = *h2p_cycle_count;
