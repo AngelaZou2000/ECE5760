@@ -18,7 +18,7 @@
 // ABCDEFGHIJKLMNOPQRSTUVWXYZ
 // YRUHQSLDPXNGOKMIEBFZCWVJAT
 char reflector_key[27] = "YRUHQSLDPXNGOKMIEBFZCWVJAT\0";
-// machine order: right --> left -- I II III
+// machine order: left --> right -- I II III
 char rotor_keys[3][27] = {
     // ABCDEFGHIJKLMNOPQRSTUVWXYZ
     // EKMFLGDQVZNTOWYHXUSPAIBRCJ
@@ -28,20 +28,13 @@ char rotor_keys[3][27] = {
     "AJDKSIRUXBLHWTMCQGZNPYFVOE\0",
     "BDFHJLCPRTXVZNYEIWGAKMUSQO\0",
 };
-char plugboard_1[1] = "\0";
-char plugboard_2[1] = "\0";
-char rotor_turnover[4] = "VEQ\0";
-char rotor_position[4] = "VDP\0";
+char plugboard_1[7] = "ACEDFG\0";
+char plugboard_2[7] = "MNQPSV\0";
+char rotor_turnover[4] = "KDO\0";
+char rotor_position[4] = "VEQ\0";
 
 int reflector(char *reflector_key, int input)
 {
-  // char input_upper = toupper(input);
-  // // printf("%c, %c, %d, %d\n", input, input_upper, input - 65, input_upper - 65);
-  // char value = reflector_key[input_upper - 'A'];
-  // printf("in: %c, out: %c\n", input_upper, value);
-  // return value;
-
-  // return reflector_key[toupper(input) - 'A'];
   return reflector_key[input] - 'A';
 }
 
@@ -60,7 +53,6 @@ int rotor_l_to_r(char *rotor_key, int input, int offset)
 // forward
 int rotor_r_to_l(char *rotor_key, int input, int offset)
 {
-  // printf("%d\n", offset);
   int enter_contact = (input + offset) % 26;
   int exit_contact = rotor_key[enter_contact] - 'A';
   int exit_position = (exit_contact - offset + 26) % 26;
@@ -89,14 +81,16 @@ char enigma_mapping(char input)
 {
   int input_value = input - 'A';
   int plugboard_value_in = plugboard_mapping(plugboard_1, plugboard_2, input_value);
-  int rotor_value_forward_2 = rotor_r_to_l(rotor_keys[2], plugboard_value_in, 0);
-  int rotor_value_forward_1 = rotor_r_to_l(rotor_keys[1], rotor_value_forward_2, 0);
-  int rotor_value_forward_0 = rotor_r_to_l(rotor_keys[0], rotor_value_forward_1, 0);
+  int rotor_value_forward_2 = rotor_r_to_l(rotor_keys[2], plugboard_value_in, rotor_position[2] - 'A');
+  int rotor_value_forward_1 = rotor_r_to_l(rotor_keys[1], rotor_value_forward_2, rotor_position[1] - 'A');
+  int rotor_value_forward_0 = rotor_r_to_l(rotor_keys[0], rotor_value_forward_1, rotor_position[0] - 'A');
   int reflector_value = reflector(reflector_key, rotor_value_forward_0);
-  int rotor_value_backward_0 = rotor_l_to_r(rotor_keys[0], reflector_value, 0);
-  int rotor_value_backward_1 = rotor_l_to_r(rotor_keys[1], rotor_value_backward_0, 0);
-  int rotor_value_backward_2 = rotor_l_to_r(rotor_keys[2], rotor_value_backward_1, 0);
+  int rotor_value_backward_0 = rotor_l_to_r(rotor_keys[0], reflector_value, rotor_position[0] - 'A');
+  int rotor_value_backward_1 = rotor_l_to_r(rotor_keys[1], rotor_value_backward_0, rotor_position[1] - 'A');
+  int rotor_value_backward_2 = rotor_l_to_r(rotor_keys[2], rotor_value_backward_1, rotor_position[2] - 'A');
   int plugboard_value_out = plugboard_mapping(plugboard_1, plugboard_2, rotor_value_backward_2);
+  printf("%d, %d, %d\n", rotor_position[0] - 'A', rotor_position[1] - 'A', rotor_position[2] - 'A');
+  printf("%d, %d, %d, %d, %d, %d, %d, %d, %d\n", input_value, plugboard_value_in, rotor_value_forward_2, rotor_value_forward_1, rotor_value_forward_0, reflector_value, rotor_value_backward_0, rotor_value_backward_1, rotor_value_backward_2, plugboard_value_out);
   return plugboard_value_out + 'A';
 }
 
@@ -112,7 +106,7 @@ void rotor_stepping()
     rotor_position[1] = (rotor_position[1] - 'A' + 1) % 26 + 'A';
   }
   rotor_position[2] = (rotor_position[2] - 'A' + 1) % 26 + 'A';
-  // printf("%s\n", rotor_position);
+  printf("%d %d %d\n", rotor_position[0] - 'A', rotor_position[1] - 'A', rotor_position[2] - 'A');
 }
 
 void enigma_running(char *input_str, char *output_str)
@@ -153,6 +147,17 @@ int main(int argc, char **argv)
   // int plugboard_value = plugboard_mapping(plugboard_1, plugboard_2, input_value);
   // printf("in: %c [%d], out: %c [%d]\n", toupper(*argv[2]), (int)(input_value), plugboard_value + 'A', plugboard_value);
 
+  // -------- verilog verif generation --------
+  // char input = 'A';
+  // for (int i = 0; i < 26; i++)
+  // {
+  //   int rotor_value_backward = rotor_l_to_r(rotor_keys[2], input - 'A', 11);
+  //   printf("%c, %c, %d\n", input, rotor_value_backward + 'A', rotor_value_backward);
+  //   input++;
+  // }
+
+  // printf("%d %d %d\n", 'V' - 'A', 'E' - 'A', 'Q' - 'A');
+
   // -------- full testing --------
   // printf("%c\n", enigma_mapping(toupper(*argv[1])));
 
@@ -173,9 +178,14 @@ int main(int argc, char **argv)
   // rotor_stepping();
 
   // -------- full testing --------
-  char input_str[39] = "UKETZBZTPCIWPODBIZPXOABINVCUZPLAOXABNI\0";
-  char output_str[39];
+  char input_str[29] = "AABBCCDDEEFFGGHHIIJJKKLLMMNN\0";
+  char output_str[29];
   enigma_running(input_str, output_str);
   printf("%s, %s\n", input_str, output_str);
+  for (int i = 0; i < 28; i++)
+  {
+    printf("%d\n", output_str[i] - 'A');
+  }
+
   return 0;
 }
