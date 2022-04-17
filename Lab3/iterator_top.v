@@ -13,7 +13,7 @@ module iterator_top #(
   input signed [26:0] init_y,
   input signed [26:0] x_partition_incr,
   input signed [26:0] y_partition_incr,
-  input signed [26:0] x_incr, // TODO: process on the HPS side
+  input signed [26:0] x_incr, 
   input signed [26:0] y_incr,
   input signed [26:0] x_limit, 
   input signed [26:0] y_limit,
@@ -37,7 +37,8 @@ module iterator_top #(
 
   assign done = &iterator_done;
   assign vga_data = m10k_read_data_arr[partition_index];
-
+  
+  // Generate block instantiates iterators
   genvar partition;
   generate
     for (partition = 0; partition < PARTITION; partition = partition + 1) begin: PART
@@ -84,6 +85,7 @@ module iterator_top #(
 
   always@(posedge clk) begin
     if (reset) begin
+      // reset init x,y value
       counter <= 32'd0;
       init_x_value <= init_x;
       init_y_value <= init_y;
@@ -99,8 +101,10 @@ module iterator_top #(
       y_limit_arr[counter] <= y_limit - y_incr;
     end
     else if (state_reg == START_SIGNAL) 
+      //reset counter to 0
       counter <= 32'd0;
     else if (state_reg == CALC & ~done) 
+      //increment counter
       counter <= counter + 1'b1;
   end
 
