@@ -32,7 +32,7 @@ module iterator_loop #(
   assign done       = iterator_done;
   
   always@(posedge clk) begin
-    if (reset) begin
+    if (reset) begin //reset variabeles to initial values
       current_x     <= init_x;
       current_y     <= init_y;
       total_counter <= 32'd0;
@@ -44,17 +44,20 @@ module iterator_loop #(
       if (node_reset) node_reset <= 1'd0;
     end else begin
       if (node_done & ~iterator_done & ~node_reset) begin
+        //if current pixel done, move to next pixel
         node_address <= node_address + 1'b1;
         node_reset    <= 1'd1;
         total_counter <= total_counter + output_counter;
         current_x     <= current_x + x_incr;
         node_row_address <= node_row_address + 1'b1;
         if (node_row_address>=PARTITION_ROW_SIZE-1) begin
+          // If row finished, increment y
           current_y <= current_y + y_incr;
           current_x <= init_x;
           node_row_address <= 0;
           node_col_address <= node_col_address + 1'b1;
           if (node_col_address>=PARTITION_COL_SIZE-1) begin
+            // If col finished, iterator done
             iterator_done <= 1'd1;
           end
         end
