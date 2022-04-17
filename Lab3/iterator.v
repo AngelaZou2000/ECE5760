@@ -32,7 +32,7 @@ module iterator #(parameter PARTITION_SIZE = 100000) (
       local_counter <= 'd0;
       done_signal <= 1'b0;
     end else begin
-      if (local_counter >= MAX_ITERATIONS) begin
+      if (local_counter >= MAX_ITERATIONS) begin // end case
         local_counter <= local_counter;
         done_signal <= 1'b1;
       end else if (($signed(curr_zr)>=$signed(TWO))|($signed(curr_zi)>=$signed(TWO))|
@@ -40,7 +40,8 @@ module iterator #(parameter PARTITION_SIZE = 100000) (
                   ($signed(curr_zr_pow2+curr_zi_pow2)>=$signed(FOUR))) begin
         local_counter <= local_counter;
         done_signal <= 1'b1;
-      end else begin
+      end else begin 
+        // update iterators 
         local_counter <= local_counter + 1'd1;
         curr_zr <= next_zr;
         curr_zi <= next_zi;
@@ -55,7 +56,8 @@ module iterator #(parameter PARTITION_SIZE = 100000) (
   assign next_zi = (zizr <<< 1) + ci;
   signed_mult zr_sq (next_zr_pow2, next_zr, next_zr);
   signed_mult zi_sq (next_zi_pow2, next_zi, next_zi);
-
+  
+  // Declare and assign color reg
   wire [7:0] color_reg;
   assign color_reg = (counter >= MAX_ITERATIONS)         ? 8'b00000000 : 
                      (counter >= (MAX_ITERATIONS >>> 1)) ? 8'b01100100 :
@@ -78,7 +80,7 @@ module iterator #(parameter PARTITION_SIZE = 100000) (
 
 endmodule
 
-// 4.23 notation
+// 4.23 notation mult module
 module signed_mult (out, a, b);
   output  signed  [26:0]  out;
   input   signed  [26:0]  a;
@@ -90,7 +92,7 @@ module signed_mult (out, a, b);
   assign out = {mult_out[53], mult_out[48:23]};
 endmodule
 
-
+// M10K module
 module M10K #(parameter DATA_WIDTH = 8, parameter PARTITION_SIZE = 100000) (
   input clk,
   input write_enable,
