@@ -37,7 +37,7 @@ module mandelbrot_vga #(
   wire [$clog2(PARTITION_SIZE)-1:0] m10k_read_address;
   wire [$clog2(PARTITION)-1:0] partition_index;
   wire [9:0] next_x, next_y;
-
+  // iterator_top instantiation
   iterator_top #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) iterator_inst (
     .clk(iterator_clk),
     .reset(iterator_reset),
@@ -55,14 +55,14 @@ module mandelbrot_vga #(
     .MAX_ITERATIONS(MAX_ITERATIONS),
     .vga_data(vga_data)
   );
-
+  // mapper instantiation
   mapper #(PARTITION, PARTITION_SIZE, PARTITION_ROW_SIZE, PARTITION_COL_SIZE) mapper_inst (
     .next_x(next_x),
     .next_y(next_y),
     .m10k_read_address(m10k_read_address),
     .partition_index(partition_index)
   );
-
+  // drive instantiation
   vga_driver driver_inst (
     .clock(vga_driver_clk),     
     .reset(vga_reset),     
