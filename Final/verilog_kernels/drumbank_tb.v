@@ -8,14 +8,16 @@ module drumbank_tb();
   reg [4:0] rotor_turnover_0;
   reg [4:0] rotor_turnover_1;
   reg [4:0] rotor_turnover_2;
-  reg [4:0] msg_input;
-  reg [4:0] msg_output;
-  reg [4:0] msg_position;
+  wire [59:0] msg_input;
+  wire [59:0] msg_output;
+  wire [59:0] msg_position;
   reg [4:0] plugboard_passin_mapping;
   reg [25:0] plugboard_in;
   wire done, fault;
 
-  drumbank DUT (
+  localparam BANK_SIZE = 12;
+
+  drumbank #(BANK_SIZE) DUT (
     .clk(clk),
     .reset(reset),
     .rotor_config_0(3'd0),
@@ -63,8 +65,45 @@ module drumbank_tb();
   localparam Y = 5'd24;
   localparam Z = 5'd25;
 
-  //Intialize and drive signals
-  // AABBCCDDEEFFGGHHIIJJKKLLMMNN
+  assign msg_input[4:0] = Y;
+  assign msg_input[9:5] = S;
+  assign msg_input[14:10] = R;
+  assign msg_input[19:15] = A;
+  assign msg_input[24:20] = O;
+  assign msg_input[29:25] = V;
+  assign msg_input[34:30] = N;
+  assign msg_input[39:35] = E;
+  assign msg_input[44:40] = T;
+  assign msg_input[49:45] = C;
+  assign msg_input[54:50] = K;
+  assign msg_input[59:55] = L;
+
+  assign msg_output[4:0] = S;
+  assign msg_output[9:5] = R;
+  assign msg_output[14:10] = A;
+  assign msg_output[19:15] = O;
+  assign msg_output[24:20] = V;
+  assign msg_output[29:25] = N;
+  assign msg_output[34:30] = E;
+  assign msg_output[39:35] = T;
+  assign msg_output[44:40] = C;
+  assign msg_output[49:45] = K;
+  assign msg_output[54:50] = L;
+  assign msg_output[59:55] = B;
+
+  assign msg_position[4:0] = 5'd16;
+  assign msg_position[9:5] = 5'd18;
+  assign msg_position[14:10] = 5'd12;
+  assign msg_position[19:15] = 5'd10;
+  assign msg_position[24:20] = 5'd1;
+  assign msg_position[29:25] = 5'd3;
+  assign msg_position[34:30] = 5'd4;
+  assign msg_position[39:35] = 5'd14;
+  assign msg_position[44:40] = 5'd8;
+  assign msg_position[49:45] = 5'd19;
+  assign msg_position[54:50] = 5'd6;
+  assign msg_position[59:55] = 5'd5;
+
 
   initial begin
     clk = 1'b0;
@@ -79,179 +118,9 @@ module drumbank_tb();
     reset = 1'b1;
     #40
     reset = 1'b0;
-    msg_input = A;
-    msg_output = I;
-    msg_position = 5'd0;
-    plugboard_passin_mapping = A;
+    plugboard_passin_mapping = Y;
     plugboard_in = 26'd0;
-    #800
-    // ------------
-    reset = 1'b1;
-    #40
-    reset = 1'b0;
-    msg_input = A;
-    msg_output = X;
-    msg_position = msg_position + 1;
-    plugboard_passin_mapping = A;
-    plugboard_in[9] = 1;
   end
-    // ------------
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = B;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = B;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = C;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = C;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = D;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = D;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = E;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = E;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = F;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = F;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = G;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = G;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = H;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = H;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = I;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = I;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = J;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = J;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = K;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = K;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = L;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = L;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = M;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = M;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = N;
-    // msg_position = msg_position + 1;
-    // #800
-    // reset = 1'b1;
-    // #40
-    // reset = 1'b0;
-    // msg_input = N;
-    // msg_position = msg_position + 1;
-  // end
 
   //Toggle the clocks
   always begin

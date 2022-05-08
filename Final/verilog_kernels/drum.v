@@ -28,7 +28,7 @@ module drum (
   // for plugboard access
   output reg plugboard_write_enable,
   output reg [4:0] plugboard_write_address,
-  output wire [4:0] plugboard_read_address,
+  output reg [4:0] plugboard_read_address,
   output reg [4:0] plugboard_write_msg,
   input wire [4:0] plugboard_read_msg,
   input wire [4:0] plugboard_passin_mapping,
@@ -42,7 +42,7 @@ module drum (
   reg [2:0] state_reg, state_next;
   localparam INIT = 3'd0;
   localparam STEPPING = 3'd1;
-  // localparam READ = 3'd2;
+  localparam READ = 3'd2;
   localparam RUN = 3'd3;
   localparam WRITE = 3'd4;
   localparam DONE = 3'd5;
@@ -67,8 +67,8 @@ module drum (
   always @(*) begin
     case(state_reg)
       INIT: state_next = STEPPING;
-      STEPPING: if (stepping_count==0) state_next = RUN;
-      // READ:
+      STEPPING: if (stepping_count==0) state_next = READ;
+      READ: if (enable) state_next = RUN;
       RUN: if (fault) state_next = DONE;
           else state_next = WRITE;
       WRITE: state_next = DONE;
@@ -78,20 +78,24 @@ module drum (
 
   assign stepping_en = (state_reg==STEPPING);
   assign done = (state_reg==DONE);
-  assign plugboard_read_address = msg_output;
+  // assign plugboard_read_address = msg_output;
   assign plugboard_read_mapping = plugboard_read_msg;
 
   always @(posedge clk) begin
     if (state_reg==INIT) begin
       plugboard_write_enable <= 1'b0;
       stepping_count <= msg_position;
-      plugboard_out <= plugboard_in;
       fault <= 0;
     end
     else if (state_reg==STEPPING) begin
       stepping_count <= stepping_count - 1'b1;
+      if (stepping_count==0) stepping_count <= stepping_count;
+    end
+    else if (state_reg==READ) begin
+      plugboard_read_address <= msg_output;
     end
     else if (state_reg==RUN) begin
+      plugboard_out <= plugboard_in;
       final_rotor_output <= rotor_backward_output2;
       if ((plugboard_in[msg_output]^plugboard_in[rotor_backward_output2])||
          ((plugboard_in[msg_output])&&(plugboard_read_mapping!=rotor_backward_output2))) begin
@@ -103,10 +107,19 @@ module drum (
       end
     end
     else if (state_reg==WRITE) begin
-      plugboard_write_enable <= 1'b1;
-      plugboard_write_address <= msg_output;
-      plugboard_write_msg <= rotor_backward_output2;
+      if(!fault) begin
+        plugboard_write_enable <= 1'b1;
+        plugboard_write_address <= msg_output;
+        plugboard_write_msg <= rotor_backward_output2;
+      end
       plugboard_passout_mapping <= rotor_backward_output2;
+      plugboard_out[msg_output] <= 1;
+      plugboard_out[rotor_backward_output2] <= 1;
+    end
+    else if (state_reg==DONE) begin
+      plugboard_write_enable <= 1'b0;
+      plugboard_write_address <= 'b0;
+      plugboard_write_msg <= 'b0;
     end
   end
 
