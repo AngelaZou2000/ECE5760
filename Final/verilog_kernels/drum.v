@@ -10,7 +10,7 @@ module drum (
   input wire reset,
   input wire enable,
   output wire done,
-  output reg fault,
+  output wire fault,
   input wire [4:0] msg_input,
   input wire [4:0] msg_output,
   input wire [4:0] msg_position,
@@ -57,6 +57,7 @@ module drum (
 
   wire [4:0] plugboard_read_mapping;
   reg [4:0] stepping_count;
+  reg run_fault;
   wire stepping_en;
   reg [4:0] plugboard1_input;
   wire [4:0] plugboard2_output;
@@ -64,12 +65,14 @@ module drum (
   wire [4:0] plugboard1_output, rotor_forward_output2, rotor_forward_output1, rotor_forward_output0;
   wire [4:0] reflector_output, rotor_backward_output0, rotor_backward_output1, rotor_backward_output2;
 
+  assign fault = (state_reg!=INIT) && run_fault;
+
   always @(*) begin
     case(state_reg)
       INIT: state_next = STEPPING;
       STEPPING: if (stepping_count==0) state_next = READ;
       READ: if (enable) state_next = RUN;
-      RUN: if (fault) state_next = DONE;
+      RUN: if (run_fault) state_next = DONE;
           else state_next = WRITE;
       WRITE: state_next = DONE;
       default: state_next = state_reg;
@@ -85,7 +88,7 @@ module drum (
     if (state_reg==INIT) begin
       plugboard_write_enable <= 1'b0;
       stepping_count <= msg_position;
-      fault <= 0;
+      run_fault <= 0;
     end
     else if (state_reg==STEPPING) begin
       stepping_count <= stepping_count - 1'b1;
@@ -99,15 +102,16 @@ module drum (
       final_rotor_output <= rotor_backward_output2;
       if ((plugboard_in[msg_output]^plugboard_in[rotor_backward_output2])||
          ((plugboard_in[msg_output])&&(plugboard_read_mapping!=rotor_backward_output2))) begin
-          fault <= 1;
+          run_fault <= 1;
       end else begin
+        run_fault <= 0;
         plugboard_write_enable <= 1'b1;
         plugboard_write_address <= rotor_backward_output2;
         plugboard_write_msg <= msg_output;
       end
     end
     else if (state_reg==WRITE) begin
-      if(!fault) begin
+      if(!run_fault) begin
         plugboard_write_enable <= 1'b1;
         plugboard_write_address <= msg_output;
         plugboard_write_msg <= rotor_backward_output2;
