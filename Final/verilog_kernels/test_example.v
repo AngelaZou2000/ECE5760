@@ -53,7 +53,7 @@
   assign msg_input[54:50] = S;
   assign msg_input[59:55] = Q;
 
-  assign msg_output[4:0] = U;
+  assign msg_output[4:0] = Y;
   assign msg_output[9:5] = L;
   assign msg_output[14:10] = E;
   assign msg_output[19:15] = J;

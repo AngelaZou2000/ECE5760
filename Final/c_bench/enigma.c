@@ -169,6 +169,5 @@ int main(int argc, char **argv) {
   for (int i = 0; i < 28; i++) {
     printf("%d  ", output_str[i] - 'A');
   }
-
   return 0;
 }
