@@ -15,6 +15,7 @@ module drumbank #(parameter BANK_SIZE=1) (
   input wire [4:0] rotor_turnover_2,
   input wire [5*BANK_SIZE-1:0] msg_input,
   input wire [5*BANK_SIZE-1:0] msg_output,
+  output wire [5*BANK_SIZE-1:0] msg_mapping,
   input wire [5*BANK_SIZE-1:0] msg_position,
   input wire [4:0] plugboard_passin_mapping,
   input wire [25:0] plugboard_in,
@@ -46,7 +47,6 @@ module drumbank #(parameter BANK_SIZE=1) (
   assign bank_done = &done;
   assign bank_fault = |fault;
 
-  //TODO: write the drum0 input mapping to the M10k
   localparam INIT = 2'b0;
   localparam WRITE0 = 2'b1;
   localparam WRITE1 = 2'd2;
@@ -109,12 +109,12 @@ module drumbank #(parameter BANK_SIZE=1) (
         .plugboard_write_address    (plugboard_write_address[inst]),
         .plugboard_read_address     (plugboard_read_address[inst]),
         .plugboard_write_msg        (plugboard_write_msg[inst]),
-        .plugboard_read_msg         (valid_plugboard_read_msg), //(plugboard_write_msg[inst]),
+        .plugboard_read_msg         (valid_plugboard_read_msg),
         .plugboard_passin_mapping   (plugboard_pass_mapping[inst]),
         .plugboard_passout_mapping  (plugboard_pass_mapping[inst+1]),
         .plugboard_in               (plugboard_setting[inst]),
         .plugboard_out              (plugboard_setting[inst+1]),
-        .final_rotor_output         ()
+        .final_rotor_output         (msg_mapping[5*inst+4:5*inst])
       );
     end
   endgenerate  

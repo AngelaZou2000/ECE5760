@@ -11,7 +11,9 @@ module bombe_tb();
   wire [59:0] msg_input;
   wire [59:0] msg_output;
   wire [59:0] msg_position;
-  reg next_attempt;
+  wire [59:0] msg_mapping;
+  reg next_attempt_1, next_attempt_2;
+  reg finish_compute;
   wire valid_output;
 
   localparam BANK_SIZE = 12;
@@ -30,8 +32,11 @@ module bombe_tb();
     .rotor_turnover_2(rotor_turnover_2),
     .msg_input(msg_input),
     .msg_output(msg_output),
+    .msg_mapping(msg_mapping),
     .msg_position(msg_position),
-    .next_attempt(next_attempt),
+    .next_attempt_1(next_attempt_1),
+    .next_attempt_2(next_attempt_2),
+    .finish_compute(finish_compute),
     .valid_output(valid_output)
   );
 
@@ -62,42 +67,43 @@ module bombe_tb();
   localparam Y = 5'd24;
   localparam Z = 5'd25;
 
-  assign msg_input[4:0] = Y;
-  assign msg_input[9:5] = S;
-  assign msg_input[14:10] = R;
-  assign msg_input[19:15] = A;
-  assign msg_input[24:20] = O;
-  assign msg_input[29:25] = V;
-  assign msg_input[34:30] = N;
-  assign msg_input[39:35] = E;
+
+  assign msg_input[4:0] = G;
+  assign msg_input[9:5] = O;
+  assign msg_input[14:10] = C;
+  assign msg_input[19:15] = M;
+  assign msg_input[24:20] = R;
+  assign msg_input[29:25] = F;
+  assign msg_input[34:30] = Y;
+  assign msg_input[39:35] = A;
   assign msg_input[44:40] = T;
-  assign msg_input[49:45] = C;
+  assign msg_input[49:45] = N;
   assign msg_input[54:50] = K;
   assign msg_input[59:55] = L;
 
-  assign msg_output[4:0] = S;
-  assign msg_output[9:5] = R;
-  assign msg_output[14:10] = A;
-  assign msg_output[19:15] = O;
-  assign msg_output[24:20] = V;
-  assign msg_output[29:25] = N;
-  assign msg_output[34:30] = E;
+  assign msg_output[4:0] = O;
+  assign msg_output[9:5] = C;
+  assign msg_output[14:10] = M;
+  assign msg_output[19:15] = R;
+  assign msg_output[24:20] = F;
+  assign msg_output[29:25] = Y;
+  assign msg_output[34:30] = A;
   assign msg_output[39:35] = T;
-  assign msg_output[44:40] = C;
+  assign msg_output[44:40] = N;
   assign msg_output[49:45] = K;
   assign msg_output[54:50] = L;
   assign msg_output[59:55] = B;
 
-  assign msg_position[4:0] = 5'd16;
-  assign msg_position[9:5] = 5'd18;
-  assign msg_position[14:10] = 5'd12;
-  assign msg_position[19:15] = 5'd10;
-  assign msg_position[24:20] = 5'd1;
-  assign msg_position[29:25] = 5'd3;
-  assign msg_position[34:30] = 5'd4;
-  assign msg_position[39:35] = 5'd14;
+  assign msg_position[4:0] = 5'd1;
+  assign msg_position[9:5] = 5'd0;
+  assign msg_position[14:10] = 5'd11;
+  assign msg_position[19:15] = 5'd2;
+  assign msg_position[24:20] = 5'd18;
+  assign msg_position[29:25] = 5'd16;
+  assign msg_position[34:30] = 5'd10;
+  assign msg_position[39:35] = 5'd12;
   assign msg_position[44:40] = 5'd8;
-  assign msg_position[49:45] = 5'd19;
+  assign msg_position[49:45] = 5'd3;
   assign msg_position[54:50] = 5'd6;
   assign msg_position[59:55] = 5'd5;
 
@@ -115,7 +121,8 @@ module bombe_tb();
     reset = 1'b1;
     #40
     reset = 1'b0;
-    next_attempt = 1'b1;
+    next_attempt_1 = 1'b1;
+    next_attempt_2 = 1'b0;
   end
 
   //Toggle the clocks

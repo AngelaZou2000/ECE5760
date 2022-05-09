@@ -15,8 +15,11 @@ module bombe #(parameter BANK_SIZE=1) (
   input wire [4:0] rotor_turnover_2,
   input wire [5*BANK_SIZE-1:0] msg_input,
   input wire [5*BANK_SIZE-1:0] msg_output,
+  output wire [5*BANK_SIZE-1:0] msg_mapping,
   input wire [5*BANK_SIZE-1:0] msg_position,
-  input wire next_attempt,
+  input wire next_attempt_1,
+  input wire next_attempt_2,
+  input wire finish_compute,
   output wire valid_output
 );
   
@@ -26,7 +29,8 @@ module bombe #(parameter BANK_SIZE=1) (
   localparam UPDATE = 3'd2;
   localparam RUN = 3'd3;
   localparam VALID = 3'd4;
-  localparam DONE = 3'd5;
+  localparam CONTINUE = 3'd5;
+  localparam DONE = 3'd6;
 
   reg [4:0] plugboard_passin_mapping;
   reg [25:0] plugboard_in;
@@ -54,9 +58,11 @@ module bombe #(parameter BANK_SIZE=1) (
       end
       VALID: begin
         if (reset) state_next = INIT;
-        else if (next_attempt) state_next = UPDATE;
+        else if (next_attempt_1) state_next = CONTINUE;
+        else if (finish_compute) state_next = DONE;
         else state_next = state_reg;
       end
+      CONTINUE: if (next_attempt_2) state_next = UPDATE;
       default: state_next = state_reg;
     endcase
   end
@@ -102,6 +108,7 @@ module bombe #(parameter BANK_SIZE=1) (
     .rotor_turnover_2             (rotor_turnover_2),
     .msg_input                    (msg_input),
     .msg_output                   (msg_output),
+    .msg_mapping                  (msg_mapping),
     .msg_position                 (msg_position),
     .plugboard_passin_mapping     (plugboard_passin_mapping),
     .plugboard_in                 (plugboard_in),
