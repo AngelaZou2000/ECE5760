@@ -160,3 +160,44 @@
   assign msg_position[49:45] = 5'd15;
   assign msg_position[54:50] = 5'd21;
   assign msg_position[59:55] = 5'd16;
+
+ // !! example 5 Plugboard: ACDEFGZ | BNQPRVY  
+ //Input: CORNELLUNIVERSITYITHACANEWYORK Output: OGGKTAKFTBUUWXBEANXBVGCPTTLVVZ
+  assign msg_input[4:0] = H;
+  assign msg_input[9:5] = B;
+  assign msg_input[14:10] = I;
+  assign msg_input[19:15] = N;
+  assign msg_input[24:20] = T;
+  assign msg_input[29:25] = E;
+  assign msg_input[34:30] = U;
+  assign msg_input[39:35] = V;
+  assign msg_input[44:40] = A;
+  assign msg_input[49:45] = C;
+  assign msg_input[54:50] = G;
+  assign msg_input[59:55] = R;
+
+  assign msg_output[4:0] = B;
+  assign msg_output[9:5] = I;
+  assign msg_output[14:10] = N;
+  assign msg_output[19:15] = T;
+  assign msg_output[24:20] = E;
+  assign msg_output[29:25] = U;
+  assign msg_output[34:30] = V;
+  assign msg_output[39:35] = A;
+  assign msg_output[44:40] = C;
+  assign msg_output[49:45] = G;
+  assign msg_output[54:50] = R;
+  assign msg_output[59:55] = W;
+
+  assign msg_position[4:0] = 5'd19;
+  assign msg_position[9:5] = 5'd14;
+  assign msg_position[14:10] = 5'd17;
+  assign msg_position[19:15] = 5'd8;
+  assign msg_position[24:20] = 5'd4;
+  assign msg_position[29:25] = 5'd11;
+  assign msg_position[34:30] = 5'd10;
+  assign msg_position[39:35] = 5'd20;
+  assign msg_position[44:40] = 5'd22;
+  assign msg_position[49:45] = 5'd21;
+  assign msg_position[54:50] = 5'd2;
+  assign msg_position[59:55] = 5'd12;
