@@ -201,3 +201,44 @@
   assign msg_position[49:45] = 5'd21;
   assign msg_position[54:50] = 5'd2;
   assign msg_position[59:55] = 5'd12; 
+
+// !! example 6 Plugboard: ACDEFGZ | BNQPRVY 
+  //Input: THISISANENCRYPTEDMESSAGE Output: GCVOGDMGIKFXEUPTPXPMPEJV
+  assign msg_input[4:0] = R;
+  assign msg_input[9:5] = X;
+  assign msg_input[14:10] = M;
+  assign msg_input[19:15] = S;
+  assign msg_input[24:20] = D;
+  assign msg_input[29:25] = P;
+  assign msg_input[34:30] = E;
+  assign msg_input[39:35] = V;
+  assign msg_input[44:40] = I;
+  assign msg_input[49:45] = E;
+  assign msg_input[54:50] = T;
+  assign msg_input[59:55] = G;
+
+  assign msg_output[4:0] = X;
+  assign msg_output[9:5] = M;
+  assign msg_output[14:10] = S;
+  assign msg_output[19:15] = D;
+  assign msg_output[24:20] = P;
+  assign msg_output[29:25] = E;
+  assign msg_output[34:30] = V;
+  assign msg_output[39:35] = I;
+  assign msg_output[44:40] = E;
+  assign msg_output[49:45] = T;
+  assign msg_output[54:50] = G;
+  assign msg_output[59:55] = J;
+
+  assign msg_position[4:0] = 5'd11;
+  assign msg_position[9:5] = 5'd17;
+  assign msg_position[14:10] = 5'd19;
+  assign msg_position[19:15] = 5'd5;
+  assign msg_position[24:20] = 5'd16;
+  assign msg_position[29:25] = 5'd18;
+  assign msg_position[34:30] = 5'd23;
+  assign msg_position[39:35] = 5'd2;
+  assign msg_position[44:40] = 5'd8;
+  assign msg_position[49:45] = 5'd15;
+  assign msg_position[54:50] = 5'd0;
+  assign msg_position[59:55] = 5'd22;
