@@ -200,4 +200,4 @@
   assign msg_position[44:40] = 5'd22;
   assign msg_position[49:45] = 5'd21;
   assign msg_position[54:50] = 5'd2;
-  assign msg_position[59:55] = 5'd12;
+  assign msg_position[59:55] = 5'd12; 
