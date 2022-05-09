@@ -119,3 +119,44 @@
   assign msg_position[49:45] = 5'd3;
   assign msg_position[54:50] = 5'd6;
   assign msg_position[59:55] = 5'd5;
+
+  // !! example 4 Plugboard: ACDEF | BNQPR  
+  //Input: CORNELLITHACANEWYORKUSA Output: OVVKTAKPNTEBNJALSQVNIWC
+  assign msg_input[4:0] = R;
+  assign msg_input[9:5] = V;
+  assign msg_input[14:10] = O;
+  assign msg_input[19:15] = C;
+  assign msg_input[24:20] = A;
+  assign msg_input[29:25] = E;
+  assign msg_input[34:30] = T;
+  assign msg_input[39:35] = N;
+  assign msg_input[44:40] = K;
+  assign msg_input[49:45] = L;
+  assign msg_input[54:50] = W;
+  assign msg_input[59:55] = S;
+
+  assign msg_output[4:0] = V;
+  assign msg_output[9:5] = O;
+  assign msg_output[14:10] = C;
+  assign msg_output[19:15] = A;
+  assign msg_output[24:20] = E;
+  assign msg_output[29:25] = T;
+  assign msg_output[34:30] = N;
+  assign msg_output[39:35] = K;
+  assign msg_output[44:40] = L;
+  assign msg_output[49:45] = W;
+  assign msg_output[54:50] = S;
+  assign msg_output[59:55] = Y;
+
+  assign msg_position[4:0] = 5'd2;
+  assign msg_position[9:5] = 5'd1;
+  assign msg_position[14:10] = 5'd0;
+  assign msg_position[19:15] = 5'd22;
+  assign msg_position[24:20] = 5'd10;
+  assign msg_position[29:25] = 5'd4;
+  assign msg_position[34:30] = 5'd8;
+  assign msg_position[39:35] = 5'd3;
+  assign msg_position[44:40] = 5'd6;
+  assign msg_position[49:45] = 5'd15;
+  assign msg_position[54:50] = 5'd21;
+  assign msg_position[59:55] = 5'd16;
