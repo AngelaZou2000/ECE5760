@@ -30,6 +30,7 @@ module bombe #(parameter BANK_SIZE=1) (
 
   reg [4:0] plugboard_passin_mapping;
   reg [25:0] plugboard_in;
+  reg [25:0] plugboard_in_shift;
   reg drumbank_reset;
   wire bank_done, bank_fault;
   assign valid_output = (state_reg==VALID);
@@ -56,7 +57,7 @@ module bombe #(parameter BANK_SIZE=1) (
         else if (next_attempt) state_next = UPDATE;
         else state_next = state_reg;
       end
-      default: state_next <= state_reg;
+      default: state_next = state_reg;
     endcase
   end
 
@@ -64,8 +65,9 @@ module bombe #(parameter BANK_SIZE=1) (
     case(state_reg)
       INIT: begin
         plugboard_passin_mapping = 5'b0;
-        plugboard_in = 26'd1;
-        // TODO: both pass in mapping and input mesasge mapping
+        plugboard_in_shift = 26'd1;
+        plugboard_in = plugboard_in_shift;
+        plugboard_in[msg_input[4:0]] = 1'b1;
       end
       INIT1: begin
         drumbank_reset = 1'b1;
@@ -73,7 +75,9 @@ module bombe #(parameter BANK_SIZE=1) (
       UPDATE: begin
         if (plugboard_passin_mapping<5'd26) begin
           plugboard_passin_mapping = plugboard_passin_mapping + 1'd1;
-          plugboard_in = plugboard_in<<1;
+          plugboard_in_shift = plugboard_in_shift<<1;
+          plugboard_in = plugboard_in_shift;
+          plugboard_in[msg_input[4:0]] = 1'b1;
           drumbank_reset = 1'b1;
         end
       end
