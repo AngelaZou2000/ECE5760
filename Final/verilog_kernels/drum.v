@@ -46,6 +46,7 @@ module drum (
   localparam RUN = 3'd3;
   localparam WRITE = 3'd4;
   localparam DONE = 3'd5;
+  localparam READ_WAIT = 3'd6;
 
   always @ (posedge clk) begin
     if (reset) begin
@@ -55,7 +56,6 @@ module drum (
     end
   end
 
-  wire [4:0] plugboard_read_mapping;
   reg [4:0] stepping_count;
   reg run_fault;
   wire stepping_en;
@@ -71,7 +71,8 @@ module drum (
     case(state_reg)
       INIT: state_next = STEPPING;
       STEPPING: if (stepping_count==0) state_next = READ;
-      READ: if (enable) state_next = RUN;
+      READ: if (enable) state_next = READ_WAIT;
+      READ_WAIT: state_next = RUN;
       RUN: if (run_fault) state_next = DONE;
           else state_next = WRITE;
       WRITE: state_next = DONE;
@@ -82,7 +83,6 @@ module drum (
   assign stepping_en = (state_reg==STEPPING);
   assign done = (state_reg==DONE);
   // assign plugboard_read_address = msg_output;
-  assign plugboard_read_mapping = plugboard_read_msg;
 
   always @(posedge clk) begin
     if (state_reg==INIT) begin
@@ -101,7 +101,7 @@ module drum (
       plugboard_out <= plugboard_in;
       final_rotor_output <= rotor_backward_output2;
       if ((plugboard_in[msg_output]^plugboard_in[rotor_backward_output2])||
-         ((plugboard_in[msg_output])&&(plugboard_read_mapping!=rotor_backward_output2))) begin
+         ((plugboard_in[msg_output])&&(plugboard_read_msg!=rotor_backward_output2))) begin
           run_fault <= 1;
       end else begin
         run_fault <= 0;

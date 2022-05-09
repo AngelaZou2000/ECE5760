@@ -65,6 +65,7 @@ module bombe #(parameter BANK_SIZE=1) (
       INIT: begin
         plugboard_passin_mapping = 5'b0;
         plugboard_in = 26'd1;
+        // TODO: both pass in mapping and input mesasge mapping
       end
       INIT1: begin
         drumbank_reset = 1'b1;
