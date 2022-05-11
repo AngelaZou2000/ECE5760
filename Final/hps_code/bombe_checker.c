@@ -1,6 +1,6 @@
+#include "config.h"
 #include <fcntl.h>
 #include <math.h>
-#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +13,9 @@
 
 int letter_label[26];
 
-/* Enigma Machine */
+// ----------------------------------------------------
+// Enigma Machine
+// ----------------------------------------------------
 char reflector_key[27] = "YRUHQSLDPXNGOKMIEBFZCWVJAT\0";
 char rotor_keys[3][27] = {
     "EKMFLGDQVZNTOWYHXUSPAIBRCJ\0",
@@ -22,7 +24,6 @@ char rotor_keys[3][27] = {
 };
 char rotor_turnover[4] = "KDO\0";
 char rotor_position[4] = "VEQ\0";
-
 
 int reflector(char *reflector_key, int input) {
   return reflector_key[input] - 'A';
@@ -74,7 +75,7 @@ void rotor_stepping() {
     rotor_position[1] = (rotor_position[1] - 'A' + 1) % 26 + 'A';
   }
   rotor_position[2] = (rotor_position[2] - 'A' + 1) % 26 + 'A';
- }
+}
 void enigma_running(char *input_str, char *output_str, char *plugboard_1, char *plugboard_2) {
   int i = 0;
   char input_char;
@@ -88,67 +89,89 @@ void enigma_running(char *input_str, char *output_str, char *plugboard_1, char *
   }
 }
 
+// ----------------------------------------------------
+// Bombe Checker
+// ----------------------------------------------------
 /*
   Function: enigma_test ()
     Output printout: "plugboard1, plugboard2, encrypted message, decrypted message"
 */
-void enigma_test(char unmatched_letters[], char encrypted_str[], char original_str[], int plugboard1_guess[], int plugboard2_guess[], char msg_out[], char msg_mapping[], int num_pairs){
+void enigma_test(char unmatched_letters[], char encrypted_str[], char original_str[], int plugboard1_guess[], int plugboard2_guess[], char msg_out[], char msg_mapping[], int num_pairs) {
   char decrypted_str[50];
   char plugboard1_str[50];
   char plugboard2_str[50];
-  for (int i=0; i<12;i++){
-      plugboard1_str[i] = msg_out[i];
-      plugboard2_str[i] = msg_mapping[i];
+  for (int i = 0; i < 12; i++) {
+    plugboard1_str[i] = msg_out[i];
+    plugboard2_str[i] = msg_mapping[i];
   }
-  for (int i=0; i<num_pairs;i++){
-      plugboard1_str[i+12] = unmatched_letters[plugboard1_guess[i]];
-      plugboard2_str[i+12] = unmatched_letters[plugboard2_guess[i]];
+  for (int i = 0; i < num_pairs; i++) {
+    plugboard1_str[i + 12] = unmatched_letters[plugboard1_guess[i]];
+    plugboard2_str[i + 12] = unmatched_letters[plugboard2_guess[i]];
   }
   enigma_running(encrypted_str, decrypted_str, plugboard1_str, plugboard2_str);
-  printf("%s,%s, ",plugboard1_str, plugboard2_str);
+  printf("%s,%s, ", plugboard1_str, plugboard2_str);
   printf("%s,%s\n", encrypted_str, decrypted_str);
-  if (strcmp(decrypted_str,original_str)==0){
+  if (strcmp(decrypted_str, original_str) == 0) {
     printf("%s\n", "Correct");
   }
 }
 
+void pairing_cleanup() {
+  int i;
+  for (i = 0; i < 26; i++) {
+    letter_label[i] = -1;
+  }
+  for (i = 0; i < 12; i++) {
+    letter_label[(int)msg_out[i] - 65] = (int)msg_mapping[i] - 65;
+    letter_label[(int)msg_mapping[i] - 65] = (int)msg_out[i] - 65;
+  }
+  for (i = 0; i < 26; i++) {
+    if (letter_label[i] == -1) {
+      unmatched_letters[unmatched_letters_count] = (char)(i + 65);
+      unmatched_letters_count++;
+    } else {
+      if (i != letter_label[i]) {
+        matched_pair_count = matched_pair_count + 1;
+      }
+    }
+  }
+  matched_pair_count = matched_pair_count / 2;
+}
 
 /* Checks Bombe Machine outputs */
 int main(void) {
-  
-  char msg_out[12] =     "VOCAETNKLWSY";    // Need to find DQ, FR
-  char msg_mapping[12] = "VONBPTCKLWSY"; 
-  char encrypted_str[50] = "OVVKTAKPNTEBNJALSQVNIWC";  
-  char original_str[50] =  "CORNELLITHACANEWYORKUSA"; 
-  char unmatched_letters[26] = "";
-  int unmatched_letters_count = 0;
-  
-    for (int i = 0; i < 12; i++) {
-      letter_label[(int)msg_out[i] - 65] = 1;
-      letter_label[(int)msg_mapping[i] - 65] = 1;
-    }
-    for (int i = 0; i < 26; i++) {
-      if (letter_label[i] == 0) {
-        unmatched_letters[unmatched_letters_count] = (char)(i + 65);
-        unmatched_letters_count++;
-      }
-    }
-  
+
+  // TODO: put in header file
+  // char msg_out[12] = "VOCAETNKLWSY"; // Need to find DQ, FR
+  // char msg_mapping[12] = "VONBPTCKLWSY";
+  // char unmatched_letters[26] = "";
+  // int unmatched_letters_count = 0;
+
+  // for (int i = 0; i < 12; i++) {
+  //   letter_label[(int)msg_out[i] - 65] = 1;
+  //   letter_label[(int)msg_mapping[i] - 65] = 1;
+  // }
+  // for (int i = 0; i < 26; i++) {
+  //   if (letter_label[i] == 0) {
+  //     unmatched_letters[unmatched_letters_count] = (char)(i + 65);
+  //     unmatched_letters_count++;
+  //   }
+  // }
+  pairing_cleanup();
   // Example: unmatched_letters = DFGHIJMQRUXZ (len = 12)
-  /* 
-     TODO: Call findPair() 
+  /*
+     TODO: Call findPair()
      TODO: For each output of findPair(), create two int arrays of plugboard settings
      Example:
         If printout = "20
                        31"
         Create int plugboard1_guess[] = {2,0}
         Create int plugboard2_guess[] = {3,1}
-        TODO: Call enigma_test(inputs given above) for each plugboard1_guess[] and plugboard2_guess[] 
+        TODO: Call enigma_test(inputs given above) for each plugboard1_guess[] and plugboard2_guess[]
   */
   // Example of one output from findPair:
-    int plugboard1_guess[50] = {0,1};
-    int plugboard2_guess[50] = {7,8};
-    int level = 2;
-    enigma_test(unmatched_letters,encrypted_str,original_str, plugboard1_guess, plugboard2_guess, msg_out, msg_mapping, level);
-
+  int plugboard1_guess[50] = {0, 1};
+  int plugboard2_guess[50] = {7, 8};
+  int level = 2;
+  enigma_test(unmatched_letters, encrypted_str, original_str, plugboard1_guess, plugboard2_guess, msg_out, msg_mapping, level);
 }

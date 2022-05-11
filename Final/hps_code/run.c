@@ -1,11 +1,6 @@
+#include "config.h"
 #include <stdio.h>
 #include <string.h>
-
-int unMatchedLetter[7];
-int temp1[3];
-int temp2[3];
-int length = 7;
-int numPair = 3;
 
 int sum() {
   int output = 0;
@@ -55,12 +50,13 @@ void printPairing() {
 void findPair(int level, int init_i, int init_j) {
   int i = init_i;
   int j = init_j;
+  if (level == 0)
+    return;
   int levelContinue = 1;
   while (levelContinue) {
     int lastUnmatched = findLastUnmatched();
     int seclastUnmatched = findSecLastUnmatched();
-    printUML();
-    // printf("%d, %d\n", seclastUnmatched, lastUnmatched);
+    // printUML();
     // !! FIXME: boundary check; rethink all of the return conditions
     if (i > seclastUnmatched)
       return;
@@ -90,7 +86,8 @@ void findPair(int level, int init_i, int init_j) {
     }
     // !! TODO: rethink
     if (level == 1) {
-      printPairing();
+      // printPairing();
+      count = count + 1;
       // TODO: add enigma computation; if find matching message, print and wait for user input; else clear the found matching (code)
       unMatchedLetter[i] = 0;
       unMatchedLetter[j] = 0;
@@ -126,7 +123,8 @@ void findPair(int level, int init_i, int init_j) {
 }
 
 int main(void) {
-  memcpy(unMatchedLetter, (int[]){0, 0, 0, 0, 0, 0, 0}, sizeof(unMatchedLetter));
+  count = 0;
+  memcpy(unMatchedLetter, (int[]){0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, sizeof(unMatchedLetter));
   // for (int i = 0; i < 7; i++) {
   //   printf("%d ", unMatchedLetter[i]);
   // }
@@ -135,5 +133,6 @@ int main(void) {
   // printf("val: %d\n", val);
   // return 0;
   findPair(numPair, 0, 1);
+  printf("%d\n", count);
   return 0;
 }
