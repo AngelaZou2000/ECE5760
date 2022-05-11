@@ -1,2 +1,2 @@
-gcc run.c -o bin
-./bin
+gcc bombe_checker.c -o checker
+./checker
