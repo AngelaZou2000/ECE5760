@@ -14,23 +14,29 @@
 // ----------------------------------------------------
 // Enigma Machine
 // ----------------------------------------------------
+
+// Calculate reflector value from reflector key
 int reflector(char *reflector_key, int input) {
   return reflector_key[input] - 'A';
 }
-// backward
+
+// rotor backward
 int rotor_l_to_r(char *rotor_key, int input, int offset) {
   int enter_contact = (input + offset) % 26;
   int exit_contact = strlen(rotor_key) - strlen(strchr(rotor_key, enter_contact + 'A'));
   int exit_position = (exit_contact - offset + 26) % 26;
   return exit_position;
 }
-// forward
+
+// rotor forward
 int rotor_r_to_l(char *rotor_key, int input, int offset) {
   int enter_contact = (input + offset) % 26;
   int exit_contact = rotor_key[enter_contact] - 'A';
   int exit_position = (exit_contact - offset + 26) % 26;
   return exit_position;
 }
+
+// key remap by plugboard
 int plugboard_mapping(char *plugboard_1, char *plugboard_2, int input) {
   if (strchr(plugboard_1, input + 'A') != NULL) {
     int index = strlen(plugboard_1) - strlen(strchr(plugboard_1, input + 'A'));
@@ -42,6 +48,8 @@ int plugboard_mapping(char *plugboard_1, char *plugboard_2, int input) {
     return input;
   }
 }
+
+// leter remap after rotor, reflector, plugboard
 char enigma_mapping(char input, char *plugboard_1, char *plugboard_2) {
   int input_value = input - 'A';
   int plugboard_value_in = plugboard_mapping(plugboard_1, plugboard_2, input_value);
@@ -55,6 +63,8 @@ char enigma_mapping(char input, char *plugboard_1, char *plugboard_2) {
   int plugboard_value_out = plugboard_mapping(plugboard_1, plugboard_2, rotor_value_backward_2);
   return plugboard_value_out + 'A';
 }
+
+// rotor stepping after each letter
 void rotor_stepping() {
   if (rotor_position[1] == rotor_turnover[1]) {
     rotor_position[0] = (rotor_position[0] - 'A' + 1) % 26 + 'A';
@@ -65,6 +75,8 @@ void rotor_stepping() {
   }
   rotor_position[2] = (rotor_position[2] - 'A' + 1) % 26 + 'A';
 }
+
+// function that pass an entire string into enigma
 void enigma_running(char *input_str, char *output_str, char *plugboard_1, char *plugboard_2) {
   int i = 0;
   char input_char;
@@ -116,12 +128,6 @@ void pairing_cleanup() {
     Output printout: "plugboard1, plugboard2, encrypted message, decrypted message"
 */
 void enigma_test(int *plugboard1_guess, int *plugboard2_guess) {
-  // if ((plugboard1_guess[0] == 1) & (plugboard1_guess[1] == 0) & ((plugboard2_guess[0] == 8) & (plugboard2_guess[1] == 7))) {
-  //   printf("here\n");
-  // }
-  // char decrypted_str[50];
-  // char plugboard1_str[50];
-  // char plugboard2_str[50];
   for (int i = 0; i < 12; i++) {
     plugboard1_str[i] = msg_out[i];
     plugboard2_str[i] = msg_mapping[i];
@@ -143,8 +149,9 @@ void enigma_test(int *plugboard1_guess, int *plugboard2_guess) {
 }
 
 // ----------------------------------------------------
-// Find Pairs
+// Find Pairs helpers
 // ----------------------------------------------------
+// Find the last unmatched letter in the array
 int findLastUnmatched() {
   for (int ind = (length - 1); ind >= 0; ind--) {
     if (unMatchedLetter[ind] == 0)
@@ -152,6 +159,8 @@ int findLastUnmatched() {
   }
   return -1;
 }
+
+// Find the second last unmatched letter in the array
 int findSecLastUnmatched() {
   for (int ind = (findLastUnmatched() - 1); ind > 0; ind--) {
     if (unMatchedLetter[ind] == 0)
@@ -159,6 +168,8 @@ int findSecLastUnmatched() {
   }
   return -1;
 }
+
+// Find the first last unmatched letter in the array
 int findFirstUnmatched() {
   for (int ind = 0; ind < length; ind++) {
     if (unMatchedLetter[ind] == 0)
@@ -166,12 +177,16 @@ int findFirstUnmatched() {
   }
   return -1;
 }
+
+//print unmatched letter array
 void printUML() {
   for (int ind = 0; ind < length; ind++) {
     printf("%d ", unMatchedLetter[ind]);
   }
   printf("\n");
 }
+
+//print final pairings
 void printPairing() {
   for (int idx = 0; idx < numPair; idx++) {
     printf("%d ", temp1[idx]);
@@ -183,6 +198,8 @@ void printPairing() {
   printf("\n");
   printf("\n");
 }
+
+// find all possible unique non-overlapping pairs 
 void findPair(int level, int init_i, int init_j) {
   int i = init_i;
   int j = init_j;
@@ -193,17 +210,16 @@ void findPair(int level, int init_i, int init_j) {
     int lastUnmatched = findLastUnmatched();
     int seclastUnmatched = findSecLastUnmatched();
     // printUML();
-    // !! FIXED: boundary check; rethink all of the return conditions
-    if (i > seclastUnmatched)
+    if (i > seclastUnmatched) //prevent repeat pairs
       return;
-    while (i <= seclastUnmatched) {
+    while (i <= seclastUnmatched) { //find next unmatched pairs
       if (unMatchedLetter[i] == 0) {
         temp1[level - 1] = i;
-        unMatchedLetter[i] = 1;
+        unMatchedLetter[i] = 1; //marked to ensure uniqueness
         while (j <= lastUnmatched) {
           if (unMatchedLetter[j] == 0) {
             temp2[level - 1] = j;
-            unMatchedLetter[j] = 1;
+            unMatchedLetter[j] = 1; //marked to ensure uniqueness
             break;
           } else {
             j++;
@@ -218,7 +234,7 @@ void findPair(int level, int init_i, int init_j) {
           return;
       }
     }
-    if (level == 1) {
+    if (level == 1) { //base case
       // printPairing();
       count = count + 1;
       enigma_test(temp1, temp2);
@@ -241,7 +257,7 @@ void findPair(int level, int init_i, int init_j) {
         levelContinue = 0;
         return;
       } else {
-        findPair(level - 1, i + 1, i + 2);
+        findPair(level - 1, i + 1, i + 2); //recursive call
         unMatchedLetter[i] = 0;
         unMatchedLetter[j] = 0;
       }
