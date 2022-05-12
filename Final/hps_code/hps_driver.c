@@ -1,11 +1,3 @@
-///////////////////////////////////////
-/// 640x480 version! 16-bit color
-/// This code will segfault the original
-/// DE1 computer
-/// compile with
-/// gcc graphics_video_16bit.c -o gr -O2 -lm
-///
-///////////////////////////////////////
 #include <fcntl.h>
 #include <math.h>
 #include <pthread.h>
@@ -18,44 +10,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-// // graphics primitives
-// void VGA_text(int, int, char *);
-// void VGA_text_clear();
-// void VGA_box(int, int, int, int, short);
-// void VGA_rect(int, int, int, int, short);
-// void VGA_line(int, int, int, int, short);
-
-// // 16-bit primary colors
-// #define red (0 + (0 << 5) + (31 << 11))
-// #define dark_red (0 + (0 << 5) + (15 << 11))
-// #define green (0 + (63 << 5) + (0 << 11))
-// #define dark_green (0 + (31 << 5) + (0 << 11))
-// #define blue (31 + (0 << 5) + (0 << 11))
-// #define dark_blue (15 + (0 << 5) + (0 << 11))
-// #define yellow (0 + (63 << 5) + (31 << 11))
-// #define cyan (31 + (63 << 5) + (0 << 11))
-// #define magenta (31 + (0 << 5) + (31 << 11))
-// #define black (0x0000)
-// #define gray (15 + (31 << 5) + (51 << 11))
-// #define white (0xffff)
-// int colors[] = {red, dark_red, green, dark_green, blue, dark_blue,
-//                 yellow, cyan, magenta, gray, black, white};
-
-// // pixel macro
-// #define VGA_PIXEL(x, y, color)                                           \
-//   do {                                                                   \
-//     int *pixel_ptr;                                                      \
-//     pixel_ptr = (int *)((char *)vga_pixel_ptr + (((y)*640 + (x)) << 1)); \
-//     *(short *)pixel_ptr = (color);                                       \
-//   } while (0)
-
-// // pixel buffer
-// volatile unsigned int *vga_pixel_ptr = NULL;
-// void *vga_pixel_virtual_base;
-// // character buffer
-// volatile unsigned int *vga_char_ptr = NULL;
-// void *vga_char_virtual_base;
 
 // video display
 #define SDRAM_BASE 0xC0000000
@@ -196,6 +150,7 @@ int main(void) {
   hps_in_ctrl_signals = (unsigned int *)(h2p_lw_virtual_base + HPS_IN_CTRL_SIGNALS);
   hps_out_reset = (unsigned int *)(h2p_lw_virtual_base + HPS_OUT_RESET);
 
+  //Init variables
   int init_rotor_position, rotor_turnover;
   int msg_input_lo, msg_input_hi;
   int msg_output_lo, msg_output_hi;
@@ -222,6 +177,7 @@ int main(void) {
   int user_msg_position_hi[6];
   int user_input = 0;
   int i;
+
   while (1) {
     // Display command and received value
     printf("Command Input: ");
@@ -230,7 +186,7 @@ int main(void) {
     if (strcmp(input_buffer, "reset") == 0) {
       printf("Default?(Y/N): ");
       scanf("%s", input_buffer);
-      if (strcmp(input_buffer, "Y") == 0) {
+      if (strcmp(input_buffer, "Y") == 0) { //Yes will set robot to default setting
         user_input = 0;
         printf("DEFAULT init rotor position: %s\n", default_init_rotor_position);
         printf("DEFAULT init rotor position: %s\n", default_rotor_turnover);
@@ -253,7 +209,7 @@ int main(void) {
         msg_position_lo = set_position_6(default_msg_position_lo);
         msg_position_hi = set_position_6(default_msg_position_hi);
 
-      } else if (strcmp(input_buffer, "N") == 0) {
+      } else if (strcmp(input_buffer, "N") == 0) { //No command will enable manual roter settings
         user_input = 1;
         printf("SET init rotor position: ");
         scanf("%s", input_buffer);
@@ -302,6 +258,7 @@ int main(void) {
         msg_position_lo = set_position_6(user_msg_position_lo);
         msg_position_hi = set_position_6(user_msg_position_hi);
       }
+      // set values to output port
       *hps_out_init_rotor_position_ptr = init_rotor_position;
       *hps_out_rotor_turnover_ptr = rotor_turnover;
       *hps_out_msg_input_lo = msg_input_lo;
@@ -320,6 +277,7 @@ int main(void) {
       read_msg_6(*hps_in_msg_mapping_hi, msg_mapping_hi);
       msg_mapping_lo[6] = '\0';
       msg_mapping_hi[6] = '\0';
+      // print out default or user input settings and discovered plugboard mappings
       if (user_input) {
         printf("init rotor position: %s\n", user_init_rotor_position);
         printf("init rotor position: %s\n", user_rotor_turnover);
@@ -371,503 +329,4 @@ int main(void) {
       }
     }
   }
-
-  // // === get VGA char addr =====================
-  // // get virtual addr that maps to physical
-  // vga_char_virtual_base = mmap(NULL, FPGA_CHAR_SPAN, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, FPGA_CHAR_BASE);
-  // if (vga_char_virtual_base == MAP_FAILED) {
-  //   printf("ERROR: mmap2() failed...\n");
-  //   close(fd);
-  //   return (1);
-  // }
-  // // Get the address that maps to the FPGA LED control
-  // vga_char_ptr = (unsigned int *)(vga_char_virtual_base);
-  // // === get VGA pixel addr ====================
-  // // get virtual addr that maps to physical
-  // vga_pixel_virtual_base = mmap(NULL, SDRAM_SPAN, (PROT_READ | PROT_WRITE), MAP_SHARED, fd, SDRAM_BASE);
-  // if (vga_pixel_virtual_base == MAP_FAILED) {
-  //   printf("ERROR: mmap3() failed...\n");
-  //   close(fd);
-  //   return (1);
-  // }
-  // // Get the address that maps to the FPGA pixel buffer
-  // vga_pixel_ptr = (unsigned int *)(vga_pixel_virtual_base);
-
-  // // Clear the screen
-  // VGA_box(0, 0, 639, 479, 0x0000);
-  // // Clear the text
-  // VGA_text_clear();
-  // // Write text for title, parameters, and graph labels
-  // VGA_text(10, 1, text_top_row);
-  // VGA_text(10, 2, text_next);
-  // VGA_text(10, 3, sigma);
-  // VGA_text(10, 4, beta);
-  // VGA_text(10, 5, rho);
-  // VGA_text(15, 33, xz);
-  // VGA_text(50, 33, xy);
-  // VGA_text(30, 55, yz);
-
-  // // the thread identifiers
-  // pthread_t thread_display, thread_input;
-
-  // // For portability, explicitly create threads in a joinable state
-  // //  thread attribute used here to allow JOIN
-  // pthread_attr_t attr;
-  // pthread_attr_init(&attr);
-  // pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-  // // now the threads
-  // pthread_create(&thread_display, NULL, display, NULL);
-  // pthread_create(&thread_input, NULL, input, NULL);
-
-  // pthread_join(thread_display, NULL);
-  // pthread_join(thread_input, NULL);
-  return 0;
-} // end main
-
-// /******** Display Thread *******/
-// void *display() {
-//   // Convert floats to fixed point (7.20)
-//   *lw_pio_init_x_ptr = to_fixed(-1.0, 20);
-//   *lw_pio_init_y_ptr = to_fixed(0.1, 20);
-//   *lw_pio_init_z_ptr = to_fixed(25.0, 20);
-//   *lw_pio_sigma_ptr = to_fixed(10.0, 20);
-//   *lw_pio_beta_ptr = to_fixed(8. / 3., 20);
-//   *lw_pio_rho_ptr = to_fixed(28.0, 20);
-//   *lw_pio_dt_ptr = to_fixed(1. / 256, 20);
-
-//   // Reset kernel
-//   *(lw_pio_ptr) = 3;
-//   *(lw_pio_ptr) = 2;
-//   *(lw_pio_ptr) = 1;
-//   *(lw_pio_ptr) = 0;
-
-//   // Update locations of current point and previous point (for graphing)
-//   x_loc = *(lw_pio_read_x_ptr);
-//   y_loc = *(lw_pio_read_y_ptr);
-//   z_loc = *(lw_pio_read_z_ptr);
-//   prev_x_loc = x_loc;
-//   prev_y_loc = y_loc;
-//   prev_z_loc = z_loc;
-
-//   while (1) {
-//     // If reset
-//     while (reset_flag == 1) {
-//       // clear screen and reset the kernel (Bit 1 is reset, Bit 0 is clock)
-//       VGA_box(0, 0, 639, 479, 0x0000);
-//       color_index = 10;
-//       *(lw_pio_ptr) = 3;
-//       *(lw_pio_ptr) = 2;
-//       *(lw_pio_ptr) = 1;
-//       *(lw_pio_ptr) = 0;
-//       // If restart, clear screen and update the point locations
-//       if (restart_flag == 1) {
-//         VGA_box(0, 0, 639, 479, 0x0000);
-//         x_loc = *(lw_pio_read_x_ptr);
-//         y_loc = *(lw_pio_read_y_ptr);
-//         z_loc = *(lw_pio_read_z_ptr);
-//         prev_x_loc = x_loc;
-//         prev_y_loc = y_loc;
-//         prev_z_loc = z_loc;
-//         // reset flags
-//         restart_flag = 0;
-//         reset_flag = 0;
-//         hunter_signal = 0;
-//         bruce_signal = 0;
-//         break;
-//       }
-//     }
-//     // If not reset or paused
-//     if ((reset_flag == 0) & (pause_signal == 0)) {
-//       // Hunter mode - only the current trace is shown (looks like a dot/tiny line tracing the path of the plot)
-//       if (hunter_signal == 1) {
-//         // Clear the screen everytime so only the current line is shown
-//         VGA_box(0, 0, 639, 479, 0x0000);
-//       }
-//       *(lw_pio_ptr) = 1;
-//       *(lw_pio_ptr) = 0;
-//       x_loc = *(lw_pio_read_x_ptr);
-//       y_loc = *(lw_pio_read_y_ptr);
-//       z_loc = *(lw_pio_read_z_ptr);
-
-//       // Used for Bruce mode - setting the color using the third dimension in order to model depth
-//       // blue
-//       color_x = (((x_loc + 21000000) / 42000000.0) * 20) + 11;
-//       color_x = color_x + (0 << 5) + (0 << 11);
-//       // red
-//       color_y = (((y_loc + 28000000) / 56000000.0) * 20) + 11;
-//       color_y = (0 + (0 << 5) + (color_y << 11));
-//       // green
-//       color_z = (((z_loc) / 60000000.0) * 40) + 22;
-//       color_z = (0 + (color_z << 5) + (0 << 11));
-
-//       // Go back to beginning of color array if at the end
-//       if (color_index++ == 11)
-//         color_index = 0;
-
-//       // Bruce mode - plot where the saturation of the graph at a certain point is based on the third dimension
-//       // Used to model depth of the third dimension - darker is further away, brighter is closer
-//       if (bruce_signal == 1) {
-//         VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
-//                  100 + (int)(prev_z_loc / 150000000.0 * 480), color_y);
-//         VGA_line(480 + (int)(x_loc / 150000000.0 * 640), 150 + (int)(y_loc / 150000000.0 * 480), 480 + (int)(prev_x_loc / 150000000.0 * 640),
-//                  150 + (int)(prev_y_loc / 150000000.0 * 480), color_z);
-//         VGA_line(320 + (int)(y_loc / 150000000.0 * 640), 275 + (int)(z_loc / 150000000.0 * 480), 320 + (int)(prev_y_loc / 150000000.0 * 640),
-//                  275 + (int)(prev_z_loc / 150000000.0 * 480), color_x);
-//       } else {
-//         // Normal mode - we cycle through a color index array so we plot in rainbow colors
-//         // Graph line between previous and current point, resize/scale within screen
-//         VGA_line(160 + (int)(x_loc / 150000000.0 * 640), 100 + (int)(z_loc / 150000000.0 * 480), 160 + (int)(prev_x_loc / 150000000.0 * 640),
-//                  100 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
-//         VGA_line(480 + (int)(x_loc / 150000000.0 * 640), 150 + (int)(y_loc / 150000000.0 * 480), 480 + (int)(prev_x_loc / 150000000.0 * 640),
-//                  150 + (int)(prev_y_loc / 150000000.0 * 480), colors[color_index]);
-//         VGA_line(320 + (int)(y_loc / 150000000.0 * 640), 275 + (int)(z_loc / 150000000.0 * 480), 320 + (int)(prev_y_loc / 150000000.0 * 640),
-//                  275 + (int)(prev_z_loc / 150000000.0 * 480), colors[color_index]);
-//       }
-//       // Update previous location with current location
-//       prev_x_loc = x_loc;
-//       prev_y_loc = y_loc;
-//       prev_z_loc = z_loc;
-
-//       // Delay (controls how fast we're sending clock signal to FPGA)
-//       usleep(time_interval);
-//     }
-
-//     // If paused, stay in while loop until unpaused
-//     while (pause_signal == 1) {
-//       if (pause_signal == 0)
-//         break;
-//     }
-//   }
-// }
-
-// /******** Input Thread *******/
-// void *input() {
-//   while (1) {
-//     // Display command and received value
-//     printf("Display Command: ");
-//     scanf("%s", input_buffer);
-//     printf("received value: %s\n", input_buffer);
-
-//     // "s" = slow (add 500 us to clock cycle time)
-//     if (strcmp(input_buffer, "s") == 0)
-//       time_interval = (int)(time_interval * 1.5);
-//     // "f" = slow (subtract 500 us to clock cycle time)
-//     else if (strcmp(input_buffer, "f") == 0)
-//       time_interval = (int)(time_interval / 1.5);
-//     // "p" = pause
-//     else if (strcmp(input_buffer, "p") == 0)
-//       pause_signal = 1;
-//     // "u" = unpause / resume
-//     else if (strcmp(input_buffer, "u") == 0)
-//       pause_signal = 0;
-//     // "hunter mode" = graphing mode where a small rainbow line traces the path
-//     else if (strcmp(input_buffer, "hunter_mode") == 0)
-//       hunter_signal = 1;
-//     // "bruce mode" = depth of third dimension encoded in the color
-//     else if (strcmp(input_buffer, "bruce_mode") == 0) {
-//       // clear the screen and initialize for "bruce mode"
-//       VGA_box(0, 0, 639, 479, 0x0000);
-//       x_loc = *(lw_pio_read_x_ptr);
-//       y_loc = *(lw_pio_read_y_ptr);
-//       z_loc = *(lw_pio_read_z_ptr);
-//       prev_x_loc = x_loc;
-//       prev_y_loc = y_loc;
-//       prev_z_loc = z_loc;
-//       x_loc = *(lw_pio_read_x_ptr);
-//       y_loc = *(lw_pio_read_y_ptr);
-//       z_loc = *(lw_pio_read_z_ptr);
-//       prev_x_loc = x_loc;
-//       prev_y_loc = y_loc;
-//       prev_z_loc = z_loc;
-//       bruce_signal = 1;
-//     }
-//     // "r" = reset
-//     else if (strcmp(input_buffer, "r") == 0) {
-//       reset_flag = 1;
-//       restart_flag = 0;
-//       printf("Default Condition (y/n): ");
-//       scanf("%s", input_buffer);
-//       // "y" = Set to default initial values/parameters
-//       if (strcmp(input_buffer, "y") == 0) {
-//         *lw_pio_init_x_ptr = to_fixed(-1.0, 20);
-//         *lw_pio_init_y_ptr = to_fixed(0.1, 20);
-//         *lw_pio_init_z_ptr = to_fixed(25.0, 20);
-//         *lw_pio_sigma_ptr = to_fixed(10.0, 20);
-//         *lw_pio_beta_ptr = to_fixed(8. / 3., 20);
-//         *lw_pio_rho_ptr = to_fixed(28.0, 20);
-//         *lw_pio_dt_ptr = to_fixed(1. / 256, 20);
-//         restart_flag = 1;
-//       }
-//       // "n" = User inputs custom values for init positions, parameters, and dt
-//       else {
-//         printf("initial x position: ");
-//         scanf("%s", input_buffer);
-//         *lw_pio_init_x_ptr = to_fixed(strtof(input_buffer, NULL), 20);
-//         printf("initial y position: ");
-//         scanf("%s", input_buffer);
-//         *lw_pio_init_y_ptr = to_fixed(strtof(input_buffer, NULL), 20);
-//         printf("initial z position: ");
-//         scanf("%s", input_buffer);
-//         *lw_pio_init_z_ptr = to_fixed(strtof(input_buffer, NULL), 20);
-//         printf("sigma value: ");
-//         scanf("%s", input_buffer);
-//         sprintf(sigma, "sigma: %s", input_buffer);
-//         *lw_pio_sigma_ptr = to_fixed(strtof(input_buffer, NULL), 20);
-//         printf("beta value: ");
-//         scanf("%s", input_buffer);
-//         sprintf(beta, "beta: %s", input_buffer);
-//         *lw_pio_beta_ptr = to_fixed(strtof(input_buffer, NULL), 20);
-//         printf("rho value: ");
-//         scanf("%s", input_buffer);
-//         sprintf(rho, "rho: %s", input_buffer);
-//         *lw_pio_rho_ptr = to_fixed(strtof(input_buffer, NULL), 20);
-//         printf("time interval step: ");
-//         scanf("%s", input_buffer);
-//         *lw_pio_dt_ptr = to_fixed(strtof(input_buffer, NULL), 20);
-
-//         // Rewrite text with updated parameters
-//         VGA_text_clear();
-//         VGA_text(10, 1, text_top_row);
-//         VGA_text(10, 2, text_next);
-//         VGA_text(10, 3, sigma);
-//         VGA_text(10, 4, beta);
-//         VGA_text(10, 5, rho);
-//         VGA_text(15, 33, xz);
-//         VGA_text(50, 33, xy);
-//         VGA_text(30, 55, yz);
-//         restart_flag = 1;
-//       }
-//     }
-//   }
-// }
-
-// /****************************************************************************************
-//  * Subroutine to send a string of text to the VGA monitor
-//  ****************************************************************************************/
-// void VGA_text(int x, int y, char *text_ptr) {
-//   volatile char *character_buffer = (char *)vga_char_ptr; // VGA character buffer
-//   int offset;
-//   /* assume that the text string fits on one line */
-//   offset = (y << 7) + x;
-//   while (*(text_ptr)) {
-//     // write to the character buffer
-//     *(character_buffer + offset) = *(text_ptr);
-//     ++text_ptr;
-//     ++offset;
-//   }
-// }
-
-// /****************************************************************************************
-//  * Subroutine to clear text to the VGA monitor
-//  ****************************************************************************************/
-// void VGA_text_clear() {
-//   volatile char *character_buffer = (char *)vga_char_ptr; // VGA character buffer
-//   int offset, x, y;
-//   for (x = 0; x < 79; x++) {
-//     for (y = 0; y < 59; y++) {
-//       /* assume that the text string fits on one line */
-//       offset = (y << 7) + x;
-//       // write to the character buffer
-//       *(character_buffer + offset) = ' ';
-//     }
-//   }
-// }
-
-// /****************************************************************************************
-//  * Draw a filled rectangle on the VGA monitor
-//  ****************************************************************************************/
-// #define SWAP(X, Y) \
-//   do {             \
-//     int temp = X;  \
-//     X = Y;         \
-//     Y = temp;      \
-//   } while (0)
-
-// void VGA_box(int x1, int y1, int x2, int y2, short pixel_color) {
-//   char *pixel_ptr;
-//   int row, col;
-
-//   /* check and fix box coordinates to be valid */
-//   if (x1 > 639)
-//     x1 = 639;
-//   if (y1 > 479)
-//     y1 = 479;
-//   if (x2 > 639)
-//     x2 = 639;
-//   if (y2 > 479)
-//     y2 = 479;
-//   if (x1 < 0)
-//     x1 = 0;
-//   if (y1 < 0)
-//     y1 = 0;
-//   if (x2 < 0)
-//     x2 = 0;
-//   if (y2 < 0)
-//     y2 = 0;
-//   if (x1 > x2)
-//     SWAP(x1, x2);
-//   if (y1 > y2)
-//     SWAP(y1, y2);
-//   for (row = y1; row <= y2; row++)
-//     for (col = x1; col <= x2; ++col) {
-//       VGA_PIXEL(col, row, pixel_color);
-//     }
-// }
-
-// /****************************************************************************************
-//  * Draw a outline rectangle on the VGA monitor
-//  ****************************************************************************************/
-// #define SWAP(X, Y) \
-//   do {             \
-//     int temp = X;  \
-//     X = Y;         \
-//     Y = temp;      \
-//   } while (0)
-
-// void VGA_rect(int x1, int y1, int x2, int y2, short pixel_color) {
-//   char *pixel_ptr;
-//   int row, col;
-
-//   /* check and fix box coordinates to be valid */
-//   if (x1 > 639)
-//     x1 = 639;
-//   if (y1 > 479)
-//     y1 = 479;
-//   if (x2 > 639)
-//     x2 = 639;
-//   if (y2 > 479)
-//     y2 = 479;
-//   if (x1 < 0)
-//     x1 = 0;
-//   if (y1 < 0)
-//     y1 = 0;
-//   if (x2 < 0)
-//     x2 = 0;
-//   if (y2 < 0)
-//     y2 = 0;
-//   if (x1 > x2)
-//     SWAP(x1, x2);
-//   if (y1 > y2)
-//     SWAP(y1, y2);
-//   // left edge
-//   col = x1;
-//   for (row = y1; row <= y2; row++) {
-//     VGA_PIXEL(col, row, pixel_color);
-//   }
-
-//   // right edge
-//   col = x2;
-//   for (row = y1; row <= y2; row++) {
-//     VGA_PIXEL(col, row, pixel_color);
-//   }
-
-//   // top edge
-//   row = y1;
-//   for (col = x1; col <= x2; ++col) {
-//     VGA_PIXEL(col, row, pixel_color);
-//   }
-
-//   // bottom edge
-//   row = y2;
-//   for (col = x1; col <= x2; ++col) {
-//     VGA_PIXEL(col, row, pixel_color);
-//   }
-// }
-
-// // =============================================
-// // === Draw a line
-// // =============================================
-// // plot a line
-// // at x1,y1 to x2,y2 with color
-// // Code is from David Rodgers,
-// //"Procedural Elements of Computer Graphics",1985
-// void VGA_line(int x1, int y1, int x2, int y2, short c) {
-//   int e;
-//   signed int dx, dy, j, temp;
-//   signed int s1, s2, xchange;
-//   signed int x, y;
-//   char *pixel_ptr;
-
-//   /* check and fix line coordinates to be valid */
-//   if (x1 > 639)
-//     x1 = 639;
-//   if (y1 > 479)
-//     y1 = 479;
-//   if (x2 > 639)
-//     x2 = 639;
-//   if (y2 > 479)
-//     y2 = 479;
-//   if (x1 < 0)
-//     x1 = 0;
-//   if (y1 < 0)
-//     y1 = 0;
-//   if (x2 < 0)
-//     x2 = 0;
-//   if (y2 < 0)
-//     y2 = 0;
-
-//   x = x1;
-//   y = y1;
-
-//   // take absolute value
-//   if (x2 < x1) {
-//     dx = x1 - x2;
-//     s1 = -1;
-//   }
-
-//   else if (x2 == x1) {
-//     dx = 0;
-//     s1 = 0;
-//   }
-
-//   else {
-//     dx = x2 - x1;
-//     s1 = 1;
-//   }
-
-//   if (y2 < y1) {
-//     dy = y1 - y2;
-//     s2 = -1;
-//   }
-
-//   else if (y2 == y1) {
-//     dy = 0;
-//     s2 = 0;
-//   }
-
-//   else {
-//     dy = y2 - y1;
-//     s2 = 1;
-//   }
-
-//   xchange = 0;
-
-//   if (dy > dx) {
-//     temp = dx;
-//     dx = dy;
-//     dy = temp;
-//     xchange = 1;
-//   }
-
-//   e = ((int)dy << 1) - dx;
-
-//   for (j = 0; j <= dx; j++) {
-//     VGA_PIXEL(x, y, c);
-
-//     if (e >= 0) {
-//       if (xchange == 1)
-//         x = x + s1;
-//       else
-//         y = y + s2;
-//       e = e - ((int)dx << 1);
-//     }
-
-//     if (xchange == 1)
-//       y = y + s2;
-//     else
-//       x = x + s1;
-
-//     e = e + ((int)dy << 1);
-//   }
-// }
+}
