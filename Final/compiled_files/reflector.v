@@ -1,11 +1,12 @@
 `default_nettype wire
-module reflector(
+module reflector( // define reflector module input/output
   input wire [4:0] reflector_input,
   output wire [4:0] reflector_output_wire
 );
 reg [4:0] reflector_output;
 assign reflector_output_wire = reflector_output;
 
+//define local parameters
 localparam A = 5'd0;
 localparam B = 5'd1;
 localparam C = 5'd2;
@@ -33,6 +34,7 @@ localparam X = 5'd23;
 localparam Y = 5'd24;
 localparam Z = 5'd25;
 
+//connect current value to reflected value
 always@(*) begin
   case (reflector_input)
     A: reflector_output = Y;
