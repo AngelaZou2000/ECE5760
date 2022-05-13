@@ -24,7 +24,7 @@ module bombe #(parameter BANK_SIZE=1) (
   output wire done_compute,
   output wire [4:0] plugboard_passin_mapping_wire
 );
-  
+  //Define Local parameters
   reg [2:0] state_reg, state_next;
   localparam INIT = 3'd0;
   localparam INIT1 = 3'd1;
@@ -46,11 +46,13 @@ module bombe #(parameter BANK_SIZE=1) (
     if (reset) state_reg <= INIT;
     else state_reg <= state_next;
   end
+
+  // State machine
   always@(*) begin
     case(state_reg)
       INIT: state_next = INIT1;
       INIT1: state_next = RUN;
-      UPDATE: begin
+      UPDATE: begin //move to DONE state if there are more than 26 plugboard mapping
         if (plugboard_passin_mapping>5'd25) state_next = DONE;
         else state_next = RUN;
       end
@@ -76,20 +78,20 @@ module bombe #(parameter BANK_SIZE=1) (
   assign drumbank_reset = (state_reg==INIT) || (state_reg==INIT1) || (state_reg==UPDATE);
   always@(posedge clk) begin
     case(state_reg)
-      INIT: begin
+      INIT: begin //init state
         // drumbank_reset = 1'b0;
         plugboard_passin_mapping = 5'b0;
         plugboard_in_shift = 26'd1;
         plugboard_in = plugboard_in_shift;
         plugboard_in[msg_input[4:0]] = 1'b1;
       end
-      INIT1: begin
+      INIT1: begin //The second init state to debounce the physical button
         // drumbank_reset = 1'b1;
         plugboard_passin_mapping = 5'b0;
         plugboard_in_shift = plugboard_in_shift;
         plugboard_in = plugboard_in;
       end
-      UPDATE: begin
+      UPDATE: begin 
         plugboard_passin_mapping = plugboard_passin_mapping + 5'd1;
         plugboard_in_shift = plugboard_in_shift<<1;
         plugboard_in = plugboard_in_shift;
@@ -112,7 +114,7 @@ module bombe #(parameter BANK_SIZE=1) (
   end
 
 
-
+  // drumbank module
   drumbank #(BANK_SIZE) inst (
     .clk                          (clk),
     .reset                        (drumbank_reset),
