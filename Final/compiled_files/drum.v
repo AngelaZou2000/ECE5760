@@ -49,7 +49,7 @@ module drum (
   localparam DONE = 3'd5;
   localparam READ_WAIT = 3'd6;
 
-  // reset condition
+  // ------------- next state update -------------------
   always @ (posedge clk) begin
     if (reset) begin
       state_reg <= INIT;
@@ -69,7 +69,7 @@ module drum (
 
   assign fault = (state_reg==WRITE) && run_fault;
 	
-  //state machine
+  // -------------- state transition -------------------
   always @(*) begin
     case(state_reg)
       INIT: state_next = STEPPING;
@@ -94,7 +94,7 @@ module drum (
   assign stepping_en = (state_reg==STEPPING);
   assign done = (state_reg==DONE);
   // assign plugboard_read_address = msg_output;
-
+  // ---------------- state output ----------------------
   always @(posedge clk) begin
 	  if (state_reg==INIT) begin //init state, enable plugboard write, set rotor pos
       plugboard_write_enable <= 1'b0;
