@@ -186,7 +186,7 @@ int main(void) {
     if (strcmp(input_buffer, "reset") == 0) {
       printf("Default?(Y/N): ");
       scanf("%s", input_buffer);
-      if (strcmp(input_buffer, "Y") == 0) { //Yes will set robot to default setting
+      if (strcmp(input_buffer, "Y") == 0) { //Yes will set rotor to default setting
         user_input = 0;
         printf("DEFAULT init rotor position: %s\n", default_init_rotor_position);
         printf("DEFAULT init rotor position: %s\n", default_rotor_turnover);
