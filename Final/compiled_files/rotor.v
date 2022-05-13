@@ -1,5 +1,5 @@
 `default_nettype wire
-module rotor(
+module rotor( //define input/output of a rotor module
   input wire [4:0] rotor_input,
   input wire [4:0] rotor_position,
   input wire [2:0] rotor_config,
@@ -60,11 +60,13 @@ localparam rII = 3'd1;
 localparam rIII = 3'd2;
 
 // ABCDEFGHIJKLMNOPQRSTUVWXYZ
+// Three rotor configurations:
 // EKMFLGDQVZNTOWYHXUSPAIBRCJ I
 // AJDKSIRUXBLHWTMCQGZNPYFVOE II
 // BDFHJLCPRTXVZNYEIWGAKMUSQO III
+  
 always@(*) begin
-  if (forward) begin
+  if (forward) begin //When rotor spinning forward, next rotor contact depends on configuration:
     case (enter_contact)
       A: exit_contact = (rotor_config==rI) ? E : ((rotor_config==rII) ? A : ((rotor_config==rIII) ? B : 5'hx));
       B: exit_contact = (rotor_config==rI) ? K : ((rotor_config==rII) ? J : ((rotor_config==rIII) ? D : 5'hx));
@@ -94,7 +96,7 @@ always@(*) begin
       Z: exit_contact = (rotor_config==rI) ? J : ((rotor_config==rII) ? E : ((rotor_config==rIII) ? O : 5'hx));
       default: exit_contact = 5'hx;
     endcase
-  end else begin
+  end else begin  //When rotor spinning backward, next rotor contact depends on configuration:
     case (enter_contact)
       A: exit_contact = (rotor_config==rI) ? U : ((rotor_config==rII) ? A : ((rotor_config==rIII) ? T : 5'hx));
       B: exit_contact = (rotor_config==rI) ? W : ((rotor_config==rII) ? J : ((rotor_config==rIII) ? A : 5'hx));
