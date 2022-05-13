@@ -4,6 +4,7 @@
 // `include "rotor.v"
 // `include "stepping_en.v"
 
+// define input/output of drum module
 module drum (
   // control signal
   input wire clk,
@@ -48,6 +49,7 @@ module drum (
   localparam DONE = 3'd5;
   localparam READ_WAIT = 3'd6;
 
+  // reset condition
   always @ (posedge clk) begin
     if (reset) begin
       state_reg <= INIT;
@@ -66,7 +68,8 @@ module drum (
   wire [4:0] reflector_output, rotor_backward_output0, rotor_backward_output1, rotor_backward_output2;
 
   assign fault = (state_reg==WRITE) && run_fault;
-
+	
+  //state machine
   always @(*) begin
     case(state_reg)
       INIT: state_next = STEPPING;
@@ -93,7 +96,7 @@ module drum (
   // assign plugboard_read_address = msg_output;
 
   always @(posedge clk) begin
-    if (state_reg==INIT) begin
+	  if (state_reg==INIT) begin //init state, enable plugboard write, set rotor pos
       plugboard_write_enable <= 1'b0;
       stepping_count <= msg_position;
       run_fault <= 0;
@@ -135,6 +138,7 @@ module drum (
     end
   end
 
+  //wiring between modules
   stepping_en stepping_inst (
     .clk                      (clk),
     .reset                    (reset),
