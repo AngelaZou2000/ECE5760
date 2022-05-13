@@ -1,6 +1,7 @@
 `default_nettype wire
 //`include "drum.v"
 
+//define input/output of drumbank module
 module drumbank #(parameter BANK_SIZE=1) (
   input wire clk,
   input wire reset,
@@ -22,7 +23,7 @@ module drumbank #(parameter BANK_SIZE=1) (
   output wire bank_done,
   output wire bank_fault
 );
-
+  //reg and wire init
   wire [BANK_SIZE-1:0] done, fault;
   wire [25:0] plugboard_setting [BANK_SIZE:0];
   wire [4:0] plugboard_pass_mapping [BANK_SIZE:0];
@@ -46,7 +47,7 @@ module drumbank #(parameter BANK_SIZE=1) (
   assign plugboard_pass_mapping[0] = plugboard_passin_mapping;
   assign bank_done = &done;
   assign bank_fault = |fault;
-
+  //local parameters init
   localparam INIT = 2'b0;
   localparam WRITE0 = 2'b1;
   localparam WRITE1 = 2'd2;
@@ -59,6 +60,7 @@ module drumbank #(parameter BANK_SIZE=1) (
     else if (state_reg==WRITE1) state_next = RUN;
     else state_next = state_reg;
   end
+  // ------------- next state update -------------------
   always@(posedge clk) begin
     if (reset) state_reg <= INIT;
     else state_reg <= state_next;
@@ -88,7 +90,7 @@ module drumbank #(parameter BANK_SIZE=1) (
 		INIT_plugboard_write_enable = 1'b0;
 	 end
   end
-
+  // generate block to connect drum based on band size
   genvar inst;
   generate
     for (inst = 0; inst < BANK_SIZE; inst = inst + 1) begin: INST
@@ -124,7 +126,7 @@ module drumbank #(parameter BANK_SIZE=1) (
     end
   endgenerate  
 
-  // TODO: cannot parametrize?
+  // drum stage count
   always@(posedge clk) begin
     drum_stage_count <= done[0]+done[1]+done[2]+done[3]+done[4]+done[5]+done[6]+done[7]+done[8]+done[9]+done[10]+done[11];
   end
