@@ -40,7 +40,7 @@ volatile unsigned int *hps_in_msg_mapping_hi = NULL;
 volatile unsigned int *hps_in_ctrl_signals = NULL;
 volatile unsigned int *hps_out_reset = NULL;
 
-// Eaxh PIO port has its own address offset
+// Each PIO port has its own address offset
 #define HPS_OUT_INIT_ROTOR_POSITION 0x00
 #define HPS_OUT_ROTOR_TURNOVER 0x10
 #define HPS_OUT_MSG_INPUT_LO 0x20
