@@ -1,5 +1,5 @@
 `default_nettype wire
-module stepping_en (
+module stepping_en ( //define input/output of stepping enigma module
   input wire clk,
   input wire reset,
   input wire enable,
@@ -15,18 +15,18 @@ module stepping_en (
 );
 
   always@(posedge clk) begin
-    if (reset) begin
+    if (reset) begin //set rotor pos to init pos if reset
       rotor_position_2 <= init_rotor_position_2;
       rotor_position_1 <= init_rotor_position_1;
       rotor_position_0 <= init_rotor_position_0;
-    end else if (enable) begin
-      if (rotor_position_1==rotor_turnover_1) begin
+    end else if (enable) begin 
+      if (rotor_position_1==rotor_turnover_1) begin //if rotor1 turnover, set rotor0 to pos0 and increment rotor1
         rotor_position_0 <= (rotor_position_0==5'd25) ? 5'd0 : (rotor_position_0+5'd1);
         rotor_position_1 <= (rotor_position_1==5'd25) ? 5'd0 : (rotor_position_1+5'd1);
       end
-      if (rotor_position_2==rotor_turnover_2) begin
+      if (rotor_position_2==rotor_turnover_2) begin //rotor2 turnover, set rotor1 to pos0 
         rotor_position_1 <= (rotor_position_1==5'd25) ? 5'd0 : (rotor_position_1+5'd1);
-      end
+      end //increment rotor2 when it reaches pos25
       rotor_position_2 <= (rotor_position_2==5'd25) ? 5'd0 : (rotor_position_2+5'd1);
     end
   end
